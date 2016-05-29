@@ -5,9 +5,10 @@ import urllib2
 import json
 import base64
 
-user = "USER"
-password = "PASSWORD"
-device=40000000
+data = json.loads(open("AUTH", "r").read())
+user = data["user"]
+password = data["password"]
+device = data["device"]
 
 ############################################################################
 
@@ -53,7 +54,7 @@ conn.close()
 
 print devices
 
-server_device=None
+server_device = None
 
 for i in devices["Devices"]:
     print i["PK_Device"], i["InternalIP"]

@@ -4,7 +4,7 @@ import urllib, urllib2, json
 import sys
 import vera
   
-vera = vera.Vera("192.168.0.202")
+vera = vera.VeraLocal("192.168.0.202")
 
 room = "Heating"
 room_id = 0

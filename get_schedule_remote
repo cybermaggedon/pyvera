@@ -4,8 +4,30 @@ import urllib, urllib2, json
 import sys
 import vera
 import csv
+
+data = json.loads(open("AUTH", "r").read())
+user = data["user"]
+password = data["password"]
+device = data["device"]
   
-vera = vera.VeraLocal("192.168.0.202")
+vera = vera.VeraRemote(user, password, device)
+
+#print vera.get("data_request?id=variableget&Variable=PK_AccessPoint")
+#print vera.get("data_request?id=variableget&Variable=PK_AccessPoint")
+
+try:
+    print vera.get("data_request?id=variableget&Variable=PK_AccessPoint")
+    print vera.get("data_request?id=sdata&output_format=json")
+except Exception, e:
+    print "*** Error", e
+    
+try:
+    print vera.get("data_request?id=status")
+    print vera.get("data_request?id=user_data&output_format=json")
+except Exception, e:
+    print "*** Error", e
+    
+sys.exit(0)
 
 room = "Heating"
 room_id = 0
