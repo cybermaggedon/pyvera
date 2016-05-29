@@ -1,0 +1,106 @@
+#!/usr/bin/env python
+
+import urllib, urllib2, json
+import sys
+import vera
+import csv
+  
+vera = vera.Vera("192.168.0.202")
+
+room = "Heating"
+room_id = 0
+
+schedule = []
+reader = csv.reader(sys.stdin)
+for row in reader:
+
+    schedule.append({
+        "name": row[0],
+        "days": row[1],
+        "time": row[2],
+        "device": row[3],
+        "action": row[4]
+        })
+
+print schedule
+
+user_data = vera.get_user_data()
+
+for i in user_data["rooms"]:
+    if i["name"] == room:
+        room_id = i["id"]
+
+print "Using room id", room_id
+
+status = vera.get_status()
+
+if status.has_key("scenes"):
+
+    for i in status["scenes"]:
+
+        scene = vera.get_scene(i["id"])
+
+        # These happen for deleted scenes?!  Why are they in the list?
+        if scene == None: continue
+        if not isinstance(scene, dict): continue
+
+        if not scene.has_key("room"): continue
+        if int(scene["room"]) != room_id: continue
+
+        if scene.has_key("name"):
+            print "Deleting scene", scene["name"]
+        else:
+            print "Deleting scene id %s" % i["id"]
+        
+        vera.delete_scene(i["id"])
+
+id = 100
+for s in schedule:
+
+    scene = {}
+
+    scene["id"] = id
+    id = id + 1
+
+    scene["name"] = s["name"]
+
+    scene["room"] = room_id
+
+    scene["groups"] = [
+
+        {
+            "delay": 0,
+            "actions": [
+                {
+                    "device": s["device"],
+                    "service": "urn:upnp-org:serviceId:SwitchPower1",
+                    "action": "SetTarget",
+                    "arguments": [
+                        {
+                            "name": "newTargetValue",
+                            "value": s["action"]
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+
+    scene["triggers"] = []
+
+    scene["timers"] = [
+        {
+            "id": 1,
+            "name": "schedule",
+            "type": "2",
+            "enabled": 1,
+            "days_of_week": s["days"],
+            "time": s["time"]
+       }
+    ]
+
+    print "Adding scene", s["name"]
+
+    vera.create_scene(scene)
+
+
