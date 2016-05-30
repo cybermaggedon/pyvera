@@ -3,15 +3,34 @@ import urllib, urllib2, json
 import sys
 import sha
 import base64
+import httplib
+import time
 
 class Vera:
 
-    def get(self, path):
+    def not_empty(self, payload):
+        
+        if (payload == ""):
+            return False
+
+        return True
+
+    def get(self, path, retries=5, validate=None):
         raise RuntimeError("Not implemented")
 
     def get_user_data(self):
 
-        payload = self.get('data_request?id=user_data&output_format=json')
+#        payload = self.get('data_request?id=user_data&output_format=json',
+#                           validate=self.not_empty)
+        payload = self.get('data_request?id=lu_status',
+                           validate=None)
+        print "Payload:",payload
+        return payload
+  
+    def get_sdata(self):
+
+        payload = self.get('data_request?id=sdata&output_format=json',
+                           retries=5, validate=self.not_empty)
         return payload
   
     def get_status(self):
@@ -104,8 +123,6 @@ class VeraRemote(Vera):
         session_token = conn.read()
         conn.close()
 
-        print "Session token:", session_token
-
         # Get device location
         headers = { "MMSSession": session_token }
 
@@ -116,16 +133,16 @@ class VeraRemote(Vera):
         devices = json.loads(conn.read())
         conn.close()
 
-        print devices
-
         server_device = None
 
         for i in devices["Devices"]:
-            print i["PK_Device"], i["InternalIP"]
             if i["PK_Device"] == device:
                 server_device = i["Server_Device"]
+
+        if server_device == None:
+            raise RuntimeError, "Device %s not known.\n" % device
                 
-        print "Will use server device", server_device
+        sys.stderr.write("Server device: %s\n" % server_device)
 
         # Get session token on server_device
         headers = {"MMSAuth": auth_token, "MMSAuthSig": auth_sig}
@@ -137,7 +154,7 @@ class VeraRemote(Vera):
         session_token = conn.read()
         conn.close()
 
-        print "Session token:", session_token
+        #print "Session token:", session_token
 
         # Get server_relay
         headers = { "MMSSession": session_token }
@@ -149,7 +166,7 @@ class VeraRemote(Vera):
 
         self.relay = relay_info["Server_Relay"]
 
-        print "Server relay is", self.relay
+        sys.stderr.write("Server relay: %s\n" % self.relay)
 
         # Get session token on server_relay
 
@@ -162,29 +179,52 @@ class VeraRemote(Vera):
         self.session_token = conn.read()
         conn.close()
 
-        print "Session token:", self.session_token
+        #print "Session token:", self.session_token
 
-    def get(self, path):
+    def get(self, path, retries=5, validate=None):
 
         headers = { "MMSSession": self.session_token }
 
         url = "https://%s/relay/relay/relay/device/%s/port_3480/%s" % (self.relay, str(self.device), path)
 
-        print url
-        
-        req = urllib2.Request(url, headers=headers)
+#        print url
 
-        conn = urllib2.urlopen(req)
-        payload = conn.read()
-        print "Payload",payload
+        while True:
+
+            req = urllib2.Request(url, headers=headers)
+            conn = urllib2.urlopen(req)
+
+            if conn.getcode() != 200:
+                retries = retries - 1
+                continue
+
+            # Work-around for non-compliant Vera behaviour?
+            try:
+                payload = conn.read()
+            except httplib.IncompleteRead, e:
+                payload = e.partial
+
+            conn.close()
+
+            if validate == None: break
+            
+            if validate(payload) == True: break
+
+            if retries == 0:
+                raise RuntimeError, "Too many retries, failed to get"
+
+            retries = retries - 1
+
+            sys.stderr.write("Get failed, will retry...\n")
+
+            time.sleep(1)
+
+        print "Payload:", payload
+        
         try: 
             payload = json.loads(payload)
         except:
-            payload = None
-
-        conn.close()
+            pass
 
         return payload
         
-
-
