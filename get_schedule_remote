@@ -4,14 +4,6 @@ import urllib, urllib2, json
 import sys
 import vera
 import csv
-import httplib
-
-import logging
-import requests
-
-handler = urllib2.HTTPSHandler(debuglevel=65535)
-opener = urllib2.build_opener(handler)
-urllib2.install_opener(opener)
 
 data = json.loads(open("AUTH", "r").read())
 user = data["user"]
@@ -20,20 +12,12 @@ device = data["device"]
   
 vera = vera.VeraRemote(user, password, device)
 
-user_data = vera.get_user_data()
-print user_data
-sys.exit(0)
-
-sdata = vera.get_sdata()
-
-print sdata
-
-sys.exit(0)
-
 room = "Heating"
 room_id = 0
 
-for i in sdata["rooms"]:
+user_data = vera.get_user_data()
+
+for i in user_data["rooms"]:
     if i["name"] == room:
         room_id = i["id"]
 

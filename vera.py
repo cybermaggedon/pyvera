@@ -5,6 +5,7 @@ import sha
 import base64
 import httplib
 import time
+import requests
 
 class Vera:
 
@@ -15,22 +16,17 @@ class Vera:
 
         return True
 
-    def get(self, path, retries=5, validate=None):
+    def get(self, path):
         raise RuntimeError("Not implemented")
 
     def get_user_data(self):
 
-#        payload = self.get('data_request?id=user_data&output_format=json',
-#                           validate=self.not_empty)
-        payload = self.get('data_request?id=lu_status',
-                           validate=None)
-        print "Payload:",payload
+        payload = self.get('data_request?id=user_data&output_format=json')
         return payload
   
     def get_sdata(self):
 
-        payload = self.get('data_request?id=sdata&output_format=json',
-                           retries=5, validate=self.not_empty)
+        payload = self.get('data_request?id=sdata&output_format=json')
         return payload
   
     def get_status(self):
@@ -95,6 +91,7 @@ class VeraRemote(Vera):
         self.user = user
         self.password = password
         self.device = device
+        self.session = requests.session()
 
         # Hard-coded auth seed
         seed = "oZ7QE6LcLJp6fiWzdqZc"
@@ -103,11 +100,9 @@ class VeraRemote(Vera):
         sha1p = sha.new(user.lower() + password + seed)
         sha1p = sha1p.hexdigest()
 
-        url="https://vera-us-oem-autha11.mios.com/autha/auth/username/%s?SHA1Password=%s&PK_Oem=1" % (user.lower(), sha1p)
+        url = "https://vera-us-oem-autha11.mios.com/autha/auth/username/%s?SHA1Password=%s&PK_Oem=1" % (user.lower(), sha1p)
 
-        conn = urllib2.urlopen(url)
-        response = json.loads(conn.read())
-        conn.close()
+        response = self.session.get(url).json()
 
         server_account = response["Server_Account"]
         auth_token = response["Identity"]
@@ -116,22 +111,14 @@ class VeraRemote(Vera):
         # Get session token for authd11
         headers = {"MMSAuth": auth_token, "MMSAuthSig": auth_sig}
 
-        request = urllib2.Request("https://vera-us-oem-authd11.mios.com/info/session/token",
-                          headers=headers)
-
-        conn = urllib2.urlopen(request)
-        session_token = conn.read()
-        conn.close()
+        url = "https://vera-us-oem-authd11.mios.com/info/session/token"
+        session_token = self.session.get(url, headers=headers).text
 
         # Get device location
         headers = { "MMSSession": session_token }
 
-        request = urllib2.Request("https://vera-us-oem-authd11.mios.com/locator/locator/locator",
-                          headers=headers)
-
-        conn = urllib2.urlopen(request)
-        devices = json.loads(conn.read())
-        conn.close()
+        url = "https://vera-us-oem-authd11.mios.com/locator/locator/locator"
+        devices = self.session.get(url, headers=headers).json()
 
         server_device = None
 
@@ -147,22 +134,15 @@ class VeraRemote(Vera):
         # Get session token on server_device
         headers = {"MMSAuth": auth_token, "MMSAuthSig": auth_sig}
 
-        request = urllib2.Request("https://" + server_device + "/info/session/token",
-                                  headers=headers)
-
-        conn = urllib2.urlopen(request)
-        session_token = conn.read()
-        conn.close()
-
-        #print "Session token:", session_token
+        url = "https://" + server_device + "/info/session/token"
+        session_token = self.session.get(url, headers=headers).text
 
         # Get server_relay
         headers = { "MMSSession": session_token }
-        request = urllib2.Request("https://" + server_device + "/device/device/device/" + str(device),
-                                  headers=headers)
-        conn = urllib2.urlopen(request)
-        relay_info = json.loads(conn.read())
-        conn.close()
+
+        url = "https://" + server_device + "/device/device/device/" + str(device)
+
+        relay_info = self.session.get(url, headers=headers).json()
 
         self.relay = relay_info["Server_Relay"]
 
@@ -171,60 +151,21 @@ class VeraRemote(Vera):
         # Get session token on server_relay
 
         headers = {"MMSAuth": auth_token, "MMSAuthSig": auth_sig}
+        url = "https://" + self.relay + "/info/session/token"
+        self.session_token = self.session.get(url, headers=headers).text
 
-        request = urllib2.Request("https://" + self.relay + "/info/session/token",
-                                  headers=headers)
-
-        conn = urllib2.urlopen(request)
-        self.session_token = conn.read()
-        conn.close()
-
-        #print "Session token:", self.session_token
-
-    def get(self, path, retries=5, validate=None):
+    def get(self, path):
 
         headers = { "MMSSession": self.session_token }
 
         url = "https://%s/relay/relay/relay/device/%s/port_3480/%s" % (self.relay, str(self.device), path)
 
-#        print url
+        response = requests.get(url, headers=headers)
 
-        while True:
-
-            req = urllib2.Request(url, headers=headers)
-            conn = urllib2.urlopen(req)
-
-            if conn.getcode() != 200:
-                retries = retries - 1
-                continue
-
-            # Work-around for non-compliant Vera behaviour?
-            try:
-                payload = conn.read()
-            except httplib.IncompleteRead, e:
-                payload = e.partial
-
-            conn.close()
-
-            if validate == None: break
-            
-            if validate(payload) == True: break
-
-            if retries == 0:
-                raise RuntimeError, "Too many retries, failed to get"
-
-            retries = retries - 1
-
-            sys.stderr.write("Get failed, will retry...\n")
-
-            time.sleep(1)
-
-        print "Payload:", payload
-        
         try: 
-            payload = json.loads(payload)
+            return response.json()
         except:
             pass
 
-        return payload
+        return response.text
         
