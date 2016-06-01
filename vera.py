@@ -9,6 +9,31 @@ import requests
 
 class Vera:
 
+    def __init__(self):
+        self.update_user_data()
+
+    def update_user_data(self):
+        ud = self.get('data_request?id=user_data&output_format=json')
+        self.user_data = ud
+
+    def get_devices(self):
+
+        devices = {}
+
+        for dev in self.user_data["devices"]:
+            devices[dev["id"]] = dev["name"]
+
+        return devices
+
+    def get_scenes(self):
+
+        scenes = {}
+
+        for s in self.user_data["scenes"]:
+            scenes[s["id"]] = s["name"]
+
+        return scenes
+
     def not_empty(self, payload):
         
         if (payload == ""):
@@ -20,9 +45,7 @@ class Vera:
         raise RuntimeError("Not implemented")
 
     def get_user_data(self):
-
-        payload = self.get('data_request?id=user_data&output_format=json')
-        return payload
+        return self.user_data
   
     def get_sdata(self):
 
@@ -69,6 +92,7 @@ class VeraLocal(Vera):
     def __init__(self, host, port = 3480):
         self.host = host
         self.port = port
+        Vera.__init__(self)
 
     def get(self, path):
         base = 'http://%s:%d' % (self.host, self.port)
@@ -87,6 +111,14 @@ class VeraLocal(Vera):
 
 class VeraRemote(Vera):
 
+    def get_session_token(self, server):
+
+        headers = {"MMSAuth": self.auth_token, "MMSAuthSig": self.auth_sig}
+        url = "https://%s/info/session/token" % server
+        session_token = self.session.get(url, headers=headers).text
+
+        return session_token
+
     def __init__(self, user, password, device):
         self.user = user
         self.password = password
@@ -104,38 +136,30 @@ class VeraRemote(Vera):
 
         response = self.session.get(url).json()
 
-        server_account = response["Server_Account"]
-        auth_token = response["Identity"]
-        auth_sig = response["IdentitySignature"]
+        self.server_account = response["Server_Account"]
+        self.auth_token = response["Identity"]
+        self.auth_sig = response["IdentitySignature"]
 
         # Get session token for authd11
-        headers = {"MMSAuth": auth_token, "MMSAuthSig": auth_sig}
-
-        url = "https://vera-us-oem-authd11.mios.com/info/session/token"
-        session_token = self.session.get(url, headers=headers).text
+        locn_server = "vera-us-oem-authd11.mios.com"
+        session_token = self.get_session_token(locn_server)
 
         # Get device location
         headers = { "MMSSession": session_token }
-
         url = "https://vera-us-oem-authd11.mios.com/locator/locator/locator"
         devices = self.session.get(url, headers=headers).json()
 
         server_device = None
-
         for i in devices["Devices"]:
             if i["PK_Device"] == device:
                 server_device = i["Server_Device"]
-
         if server_device == None:
             raise RuntimeError, "Device %s not known.\n" % device
                 
         sys.stderr.write("Server device: %s\n" % server_device)
 
         # Get session token on server_device
-        headers = {"MMSAuth": auth_token, "MMSAuthSig": auth_sig}
-
-        url = "https://" + server_device + "/info/session/token"
-        session_token = self.session.get(url, headers=headers).text
+        session_token = self.get_session_token(server_device)
 
         # Get server_relay
         headers = { "MMSSession": session_token }
@@ -149,10 +173,11 @@ class VeraRemote(Vera):
         sys.stderr.write("Server relay: %s\n" % self.relay)
 
         # Get session token on server_relay
+        self.session_token = self.get_session_token(self.relay)
 
-        headers = {"MMSAuth": auth_token, "MMSAuthSig": auth_sig}
-        url = "https://" + self.relay + "/info/session/token"
-        self.session_token = self.session.get(url, headers=headers).text
+        Vera.__init__(self)
+
+        sys.stderr.write("Connected to remote device.\n")
 
     def get(self, path):
 

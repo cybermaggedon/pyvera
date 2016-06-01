@@ -34,13 +34,11 @@ output = csv.writer(sys.stdout)
 
 if status.has_key("scenes"):
 
-    print "Has scenes"
-
-    print status["scenes"]
-
     for i in status["scenes"]:
 
         scene = vera.get_scene(i["id"])
+
+        print scene
 
         # These happen for deleted scenes?!  Why are they in the list?
         if scene == None: continue
@@ -48,8 +46,6 @@ if status.has_key("scenes"):
 
         if not scene.has_key("room"): continue
         if int(scene["room"]) != room_id: continue
-
-        print scene
 
 #        continue
 
