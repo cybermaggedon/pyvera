@@ -548,6 +548,9 @@ class Scene(object):
     def __init__(self):
         pass
 
+    def delete(self):
+        self.vera.delete_scene(self)
+
 class Room(object):
 
     def __init__(self):

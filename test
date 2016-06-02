@@ -6,12 +6,6 @@ import vera
 import csv
 import json
 
-tm = vera.Time.parse("16:30")
-
-print tm
-
-sys.exit(0)
-
 if len(sys.argv) != 2:
     sys.stderr.write("Usage:\n    get_schedule <config>\n")
     sys.exit(1)
@@ -25,24 +19,6 @@ else:
     password = config["remote"]["password"]
     device = config["remote"]["device"]
     ve = vera.VeraRemote(user, password, device)
-
-#dev = ve.get_device("Humidity sensor")
-
-#print dev.name, dev.device_json
-
-#data = ve.get_file(dev.device_json)
-#print data
-
-#events = data["eventList2"]
-
-#for i in events:
-#    print i["id"], i["label"]["text"]
-
-#sys.exit(0)
-
-#print json.dumps(ve.get_file("D_TemperatureSensor1.json"),indent=4)
-
-#print ve.get_file("S_TemperatureSensor1.xml")
 
 room = ve.get_room_by_id(1)
 print room.id, room.name

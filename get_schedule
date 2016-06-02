@@ -19,10 +19,6 @@ else:
     device = config["remote"]["device"]
     ve = vera.VeraRemote(user, password, device)
 
-#print json.dumps(ve.get_user_data()["scenes"], indent=4)
-
-#sys.exit(0)
-
 room = ve.get_room(sys.argv[2])
 
 scenes = ve.get_scenes()
