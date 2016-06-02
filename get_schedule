@@ -30,9 +30,45 @@ scenes = ve.get_scenes()
 output = csv.writer(sys.stdout)
 
 for s in scenes:
-    print json.dumps(s.definition.output(), indent=4)
-    print
-    sys.exit(0)
+
+    if s.room != room:
+        continue
+
+#    print json.dumps(s.definition.output(), indent=4)
+#    print
+
+    defn = s.definition
+
+    name = defn.name
+    days = defn.timers[0].days
+
+    if len(defn.actions) != 1:
+        raise RuntimeError, "Can only handle scene on single device"
+
+    if len(defn.actions[0].actions) != 1:
+        raise RuntimeError, "Can only handle single device in a group"
+
+    device = defn.actions[0].actions[0].device
+
+    value = defn.actions[0].actions[0].value
+
+    if type(defn.actions[0].actions[0]) == vera.HeatingAction:
+        tp = "heat"
+    elif type(defn.actions[0].actions[0]) == vera.SwitchAction:
+        tp = "switch"
+    if type(defn.actions[0].actions[0]) == vera.SetpointAction:
+        tp = "set"
+
+    row = [name, days, device.name, tp, value]
+
+    times = []
+    for t in defn.timers:
+        if t.days != days:
+            raise RuntimeError, "Inconsistent days in scene"
+        
+        row.append(t.time.output())
+
+    output.writerow(row)
 
 sys.exit(0)
 

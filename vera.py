@@ -7,7 +7,7 @@ import httplib
 import time
 import requests
 
-class Time:
+class Time(object):
 
     def __init__(self, h=0, m=0, s=0, after_sunrise=False, after_sunset=False):
         self.time = (h, m, s)
@@ -21,7 +21,32 @@ class Time:
             return "%02d:%02d:%02dT" % self.time
         return "%02d:%02d:%02d" % self.time
 
-class DayOfWeekTimer:
+    def parse(s):
+        x = s.split(":")
+        if len(x) == 1:
+            x.append("0")
+        if len(x) == 2:
+            x.append("0")
+        
+        return Time(int(x[0]), int(x[1]), int(x[2]))
+
+    parse = staticmethod(parse)
+
+class Timer(object):
+
+    def parse(s):
+
+        if s["type"] == 2:
+            return DayOfWeekTimer.parse(s)
+
+        if s["type"] == 3:
+            return DayOfMonthTimer.parse(s)
+
+        raise RuntimeError, "Parsing timer not implemented."
+
+    parse = staticmethod(parse)
+
+class DayOfWeekTimer(Timer):
 
     def __init__(self, id=None, name=None, days=None, time=None):
         self.id = id
@@ -39,8 +64,20 @@ class DayOfWeekTimer:
             "time": self.time.output()
        }
 
+    def parse(s):
+        t = DayOfWeekTimer()
+        t.id = s.get("id", None)
+        t.name = s.get("name", None)
+        t.days = s.get("days_of_week", None)
+        if s.has_key("time"):
+            t.time = Time.parse(s["time"])
+        else:
+            t.time = None
+        return t
+
+    parse = staticmethod(parse)
     
-class DayOfMonthTimer:
+class DayOfMonthTimer(Timer):
 
     def __init__(self, id, name, days, time):
         self.id = id
@@ -58,7 +95,21 @@ class DayOfMonthTimer:
             "time": self.time.output()
         }
 
-class IntervalTimer:
+    def parse(s):
+        t = DayOfMonthTimer()
+        t.id = s.get("id", None)
+        t.name = s.get("name", None)
+        t.days = s.get("days_of_month", None)
+        if s.has_key("time"):
+            t.time = Time.parse(s["time"])
+        else:
+            t.time = None
+        return t
+
+    parse = staticmethod(parse)
+
+    
+class IntervalTimer(Timer):
     def __init__(self, id, name, seconds=0, minutes=0, hours=0, days=0):
         self.id = id
         self.name = name
@@ -82,9 +133,9 @@ class IntervalTimer:
             "type": 1,
             "enabled": 1,
             "interval": interval
-       }
+        }
 
-class AbsoluteTimer:
+class AbsoluteTimer(object):
 
     def __init__(self, id, name, year, month, date, hours=0, minutes=0,
                  seconds=0):
@@ -103,7 +154,8 @@ class AbsoluteTimer:
             "abstime": time
         }
 
-class Trigger:
+class Trigger(Timer):
+    
     def __init__(self, id=None, name=None, device=None, template=None, args=[],
                  start=None, stop=None, days_of_week=None):
         self.id, self.name = id, name
@@ -135,9 +187,59 @@ class Trigger:
 
         return val
 
-class SetpointAction:
+    def parse(vera, s):
 
-    def __init__(self, device, value):
+        t = Trigger()
+
+        t.id = s.get("id", None)
+        t.template = s.get("template", None)
+        t.name = s.get("name", None)
+        t.days_of_week = s.get("days_of_week", None)
+        
+        if s.has_key("arguments"):
+            for i in s["arguments"]:
+                t.args.append(i["value"])
+
+        if s.has_key("device"):
+            t.device = vera.get_device_by_id(s["device"])
+        else:
+            t.device = None
+
+        if s.has_key("start"):
+            t.start = Time.parse(s["start"])
+        else:
+            t.start = None
+
+        if s.has_key("stop"):
+            t.stop = Time.parse(s["stop"])
+        else:
+            t.stop = None
+
+        return t
+
+    parse = staticmethod(parse)
+
+class Action(object):
+
+    def parse(vera, s):
+
+        if s["service"] == "urn:upnp-org:serviceId:TemperatureSetpoint1":
+            return SetpointAction.parse(vera, s)
+
+        if s["service"] == "urn:upnp-org:serviceId:SwitchPower1":
+            return SwitchAction.parse(vera, s)
+
+        if s["service"] == "urn:upnp-org:serviceId:HVAC_UserOperatingMode1":
+            return HeatingAction.parse(vera, s)
+
+        raise RuntimeError, "Don't know how to handle service %s" % \
+            s["service"]
+
+    parse = staticmethod(parse)
+
+class SetpointAction(Action):
+
+    def __init__(self, device=None, value=None):
         self.device = device
         self.value = value
 
@@ -154,9 +256,17 @@ class SetpointAction:
             "service": "urn:upnp-org:serviceId:TemperatureSetpoint1"
         }
     
-class SwitchAction:
+    def parse(vera, s):
+        ha = SetpointAction()
+        ha.device = vera.get_device_by_id(s["device"])
+        ha.value = s["arguments"][0]["value"]
+        return ha
 
-    def __init__(self, device, value):
+    parse = staticmethod(parse)
+
+class SwitchAction(Action):
+
+    def __init__(self, device=None, value=None):
         self.device = device
         self.value = value
 
@@ -173,9 +283,17 @@ class SwitchAction:
             "service": "urn:upnp-org:serviceId:SwitchPower1"
         }
 
-class HeatingAction:
+    def parse(vera, s):
+        ha = SwitchAction()
+        ha.device = vera.get_device_by_id(s["device"])
+        ha.value = s["arguments"][0]["value"]
+        return ha
 
-    def __init__(self, device, value):
+    parse = staticmethod(parse)
+
+class HeatingAction(Action):
+
+    def __init__(self, device=None, value=None):
         self.device = device
         self.value = value
 
@@ -192,11 +310,21 @@ class HeatingAction:
             "service": "urn:upnp-org:serviceId:HVAC_UserOperatingMode1"
         }
 
-class ActionSet:
+    def parse(vera, s):
+        ha = HeatingAction()
+        ha.device = vera.get_device_by_id(s["device"])
+        ha.value = s["arguments"][0]["value"]
+        return ha
 
-    def __init__(self, delay, actions):
+    parse = staticmethod(parse)
+
+class ActionSet(object):
+
+    def __init__(self, delay=None, actions=None):
         self.delay = delay
         self.actions = actions
+
+        if self.actions == None: self.actions = []
 
     def output(self):
         acts = []
@@ -207,16 +335,43 @@ class ActionSet:
             "actions": acts
         }
 
-class SceneDefinition:
+    def parse(vera, s):
+        aset = ActionSet()
 
-    def __init__(self, name=None, triggers=[], modes=None, timers=[],
-                 actions=[], room=None):
+        aset.delay = s.get("delay", 0)
+
+        if s.has_key("actions"):
+            for i in s["actions"]:
+                aset.actions.append(Action.parse(vera, i))
+
+        return aset
+
+    parse = staticmethod(parse)
+
+class SceneDefinition(object):
+
+    def __init__(self, name=None, triggers=None, modes=None, timers=None,
+                 actions=None, room=None):
 
         self.name = name
-        self.triggers = triggers
+
+        if triggers != None:
+            self.triggers = triggers
+        else:
+            self.triggers = []
+            
         self.modes = modes
-        self.timers = timers
-        self.actions = actions
+
+        if timers != None:
+            self.timers = timers
+        else:
+            self.timers = []
+
+        if actions != None:
+            self.actions = actions
+        else:
+            self.actions = []
+
         self.room = room
 
     def output(self):
@@ -250,7 +405,37 @@ class SceneDefinition:
 
         return val
 
-class Modes:
+    def parse(vera, s):
+
+        sd = SceneDefinition()
+        
+        sd.name = s["name"]
+
+        for i in s["triggers"]:
+            sd.triggers.append(Trigger.parse(vera, i))
+
+        if s.has_key("timers"):
+            for i in s["timers"]:
+                sd.timers.append(Timer.parse(i))
+
+        if s.has_key("groups"):
+            for i in s["groups"]:
+                sd.actions.append(ActionSet.parse(vera, i))
+
+        if s.has_key("room"):
+            if s["room"] == 0:
+                sd.room = None
+            else:
+                sd.room = vera.get_room_by_id(s["room"])
+
+        if s.has_key("modeStatus"):
+            sd.modes = Modes.parse(vera, s["modeStatus"])
+
+        return sd
+
+    parse = staticmethod(parse)
+
+class Modes(object):
     def __init__(self, home=False, away=False, night=False, vacation=False):
         self.home, self.away, self.night = home, away, night
         self.vacation = vacation
@@ -270,7 +455,21 @@ class Modes:
             val = val + "4"
         return val
 
-class Device:
+    def parse(vera, s):
+        x = s.split(",")
+        y = {}
+        for i in x:
+            y[i] = True
+
+        m = Modes()
+        m.home = y.get(0, None)
+        m.away = y.get(1, None)
+        m.night = y.get(2, None)
+        m.vacation = y.get(3, None)
+
+    parse = staticmethod(parse)
+
+class Device(object):
 
     def __init__(self):
         pass
@@ -344,17 +543,17 @@ class Device:
         status = self.vera.get(path)
         return status
 
-class Scene:
+class Scene(object):
 
     def __init__(self):
         pass
 
-class Room:
+class Room(object):
 
     def __init__(self):
         pass
 
-class Vera:
+class Vera(object):
 
     def __init__(self):
         self.update_state()
@@ -409,9 +608,11 @@ class Vera:
             self.devices[d.id] = d
 
         self.scenes = {}
+
         for i in self.user_data["scenes"]:
-                    
+
             s = Scene()
+            
             s.vera = self
             s.id = i["id"]
             s.name = i["name"]
@@ -420,79 +621,9 @@ class Vera:
             else:
                 s.room = None
 
-#            s.definition = self.parse_scene(i)
+            s.definition = SceneDefinition.parse(self, i)
             
             self.scenes[s.id] = s
-
-    def parse_trigger(self, s):
-
-        t = Trigger()
-
-        if s.has_key("id"):
-            t.id = s["id"]
-        else:
-            t.id = None
-
-        if s.has_key("template"):
-            t.template = s["template"]
-        else:
-            t.template = None
-
-        if s.has_key("arguments"):
-            for i in s["arguments"]:
-                t.args.append(i["value"])
-
-        if s.has_key("name"):
-            t.name = s["name"]
-        else:
-            t.name = None
-
-        if s.has_key("device"):
-            t.device = self.get_device_by_id(s["device"])
-        else:
-            t.device = None
-
-        if s.has_key("start"):
-            t.start = self.parse_time(s["start"])
-        else:
-            t.start = None
-
-        if s.has_key("stop"):
-            t.stop = self.parse_time(s["stop"])
-        else:
-            t.stop = None
-
-        return t
-
-    def parse_time(self, s):
-        x = s["time"].split(":")
-        return Time(int(x[0]), int(x[1]), int(x[2]))
-
-    def parse_timer(self, s):
-
-        if s["type"] == 2:
-            t = DayOfWeekTimer()
-            t.name = s["name"]
-            t.days_of_week = s["days_of_week"]
-            t.time = self.parse_time(s["time"])
-            return t
-
-        raise RuntimeError, "Parsing timer not implemented."
-            
-
-    def parse_scene(self, s):
-
-        sd = SceneDefinition()
-        sd.name = s["name"]
-
-        for i in s["triggers"]:
-            sd.triggers.append(self.parse_trigger(i))
-
-        if s.has_key("timers"):
-            for i in s["timers"]:
-                sd.timers.append(self.parse_timer(i))
-
-        return sd
 
     def get_room_by_id(self, id):
         if self.rooms.has_key(id):

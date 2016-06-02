@@ -6,6 +6,12 @@ import vera
 import csv
 import json
 
+tm = vera.Time.parse("16:30")
+
+print tm
+
+sys.exit(0)
+
 if len(sys.argv) != 2:
     sys.stderr.write("Usage:\n    get_schedule <config>\n")
     sys.exit(1)
