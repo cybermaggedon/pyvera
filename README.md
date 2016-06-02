@@ -1,7 +1,7 @@
 
-= PyVera
+# PyVera
 
-== Introducation
+## Introducation
 
 Python library to allow communication with a MiCasaVerde Vera.  Operates in
 both local and remote mode i.e. you can communicate directly with the Vera from
@@ -10,9 +10,9 @@ relay servers if you are away from your home network.
 
 Needs to be running UI7 for remote mode, I believe.
 
-== Examples
+## Examples
 
-=== Connect to Vera
+### Connect to Vera
 
 ```
 import vera
@@ -24,7 +24,7 @@ ve = vera.VeraLocal("192.168.0.10")
 ve = vera.VeraRemote("username", "password", "1234123456")
 ```
 
-=== Iterate over devices
+### Iterate over devices
 
 ```
 for i in ve.get_devices():
@@ -35,7 +35,7 @@ for i in ve.get_devices():
     print "  %s: %s (%s)" % (i.id, i.name, room)
 ```
 
-=== Interact with a single device
+### Interact with a single device
 
 For switches:
 
@@ -74,7 +74,7 @@ print "%s temperature sensor: %f" % (dev.name, dev.get_current_temperature())
 print "%s humidity sensor: %d" % (dev.name, dev.get_current_humidity())
 ```
 
-=== Discover rooms
+### Discover rooms
 
 ```
 rooms = ve.get_rooms()
@@ -82,7 +82,7 @@ for i in rooms:
     print "  %s: %s" % (i.id, i.name)
 ```
 
-=== Discover scenes
+### Discover scenes
 
 ```
 scenes = ve.get_scenes()
@@ -90,7 +90,7 @@ for i in scenes:
     print "  %s: %s" % (i.id, i.name)
 ```
 
-=== Delete scenes
+### Delete scenes
 
 ```
 # Get room
@@ -103,7 +103,7 @@ for i in scenes:
         i.delete()
 ```
 
-=== Create a scene
+### Create a scene
 
 ```
 # This is a complicated example, it doesn't have to be this complicated :)
