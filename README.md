@@ -1,7 +1,7 @@
 
 # PyVera
 
-## Introducation
+## Introduction
 
 Python library to allow communication with a MiCasaVerde Vera.  Operates in
 both local and remote mode i.e. you can communicate directly with the Vera from
@@ -9,6 +9,8 @@ your home network, or interact with the Vera using your credentials on MCV's
 relay servers if you are away from your home network.
 
 Needs to be running UI7 for remote mode, I believe.
+
+I'm using Linux, it may be possible use this stuff in Windows, perhaps.
 
 ## Examples
 
@@ -160,4 +162,70 @@ sd = vera.SceneDefinition("My complicated scene", [tr], m, [t1, t2, t3, t4],
 # Create the scene.
 ve.create_scene(sd)
 ```
+
+## Utilites
+
+It can be fiddly to manage a heating schedule for a large heating system
+through the web interface, so I've got some utilities that allow the schedule
+to be stored in a file, and pushed to the Vera.
+
+### Create a CSV file contain the schedule
+
+See ```SCHEDULE.csv``` for a example format.
+
+Format is:
+1. Scene name
+2. Comma-separated list of days for this scene to operate 1=Monday etc.  Don't
+   forget to quote the field, because commas are a separator.
+3. Device to manage.
+4. Type of action to take:
+--* ```heat``` to manage a heating controller.
+--* ```set``` to manage a thermostat.
+--* ```switch``` to operate a simple switch.
+5. Value to apply to the device:
+--* For ```heat``` use values ```HeatOn``` and ```Off```.
+--* For ```set``` using a floating point temperature value.
+--* For ```switch``` Use ```On``` and ```Off```.
+6. Following fields are times to activate the scene.  Multiple times can be
+   specified e.g. to fire the scene at different times of the day.
+
+### Configure
+
+Create a file e.g. ```AUTH.json```.  Example forms for local comms to Vera:
+```
+{
+    "local": {
+         "address": "192.168.0.10"
+    }
+}
+````
+and for remote:
+```
+{
+  "remote": {
+    "user": "USERNAME",
+    "password": "PASSWORD",
+    "device": "4321987654"
+  }
+}
+```
+
+Also, using the web interface, make sure there's a room for the scenes to be
+created in.  When uploading, all scenes in the room get deleted, so you
+probably want a separate room e.g. Heating.
+
+### Create scenes
+
+Parameters to this utility are the configuration file, and the room name.  The
+schedule is read from the standard input.
+
+```
+./upload_scenes AUTH.json Heating < SCHEDULE.csv
+```
+
+If all works, you should see a set of scenes appear in the web interface.
+
+The ```upload_scenes``` utility uses a restricted set of the scene features,
+so may get confused if you start creating your own scenes in the room.
+
 
