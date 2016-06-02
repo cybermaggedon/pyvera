@@ -5,114 +5,76 @@ import sys
 import vera
 import csv
   
-if len(sys.argv) != 2:
-    sys.stderr.write("Usage:\n    get_schedule <config>\n")
+if len(sys.argv) != 3:
+    sys.stderr.write("Usage:\n    update_scenes <config> <room>\n")
     sys.exit(1)
 
 config = json.loads(open(sys.argv[1], "r").read())
-
-if config.has_key("local"):
-    vera = vera.VeraLocal(config["local"]["address"])
-else:
-    user = config["remote"]["user"]
-    password = config["remote"]["password"]
-    device = config["remote"]["device"]
-    vera = vera.VeraRemote(user, password, device)
-
-room = "Heating"
-room_id = 0
 
 schedule = []
 reader = csv.reader(sys.stdin)
 for row in reader:
 
+    # Ignore empty lines
+    if len(row) == 0: continue
+
     schedule.append({
         "name": row[0],
         "days": row[1],
-        "time": row[2],
-        "device": row[3],
-        "action": row[4]
+        "device": row[2],
+        "action": row[3],
+        "value": row[4],
+        "times": row[5:]
         })
 
-print schedule
+if config.has_key("local"):
+    ve = vera.VeraLocal(config["local"]["address"])
+else:
+    user = config["remote"]["user"]
+    password = config["remote"]["password"]
+    device = config["remote"]["device"]
+    ve = vera.VeraRemote(user, password, device)
 
-user_data = vera.get_user_data()
+room = sys.argv[2]
+room = ve.get_room(room)
 
-for i in user_data["rooms"]:
-    if i["name"] == room:
-        room_id = i["id"]
+for i in ve.get_scenes():
+    if i.room == room:
+        print "Deleting scene %s" % i.name
+        ve.delete_scene(i)
 
-print "Using room id", room_id
-
-status = vera.get_status()
-
-if status.has_key("scenes"):
-
-    for i in status["scenes"]:
-
-        scene = vera.get_scene(i["id"])
-
-        # These happen for deleted scenes?!  Why are they in the list?
-        if scene == None: continue
-        if not isinstance(scene, dict): continue
-
-        if not scene.has_key("room"): continue
-        if int(scene["room"]) != room_id: continue
-
-        if scene.has_key("name"):
-            print "Deleting scene", scene["name"]
-        else:
-            print "Deleting scene id %s" % i["id"]
-        
-        vera.delete_scene(i["id"])
-
-id = 100
 for s in schedule:
 
-    scene = {}
+    device = ve.get_device(s["device"])
 
-    scene["id"] = id
-    id = id + 1
+    if s["action"] == "set":
+        action = vera.SetpointAction(device, s["value"])
+    elif s["action"] == "switch":
+        action = vera.SwitchAction(device, s["value"])
+    elif s["action"] == "heat":
+        action = vera.HeatingAction(device, s["value"])
+    else:
+        raise RuntimeError, "Don't know about action '%s'" % s["action"]
 
-    scene["name"] = s["name"]
+    actions = vera.ActionSet(0, [action])
 
-    scene["room"] = room_id
+    timers = []
 
-    scene["groups"] = [
+    for i in s["times"]:
 
-        {
-            "delay": 0,
-            "actions": [
-                {
-                    "device": s["device"],
-                    "service": "urn:upnp-org:serviceId:SwitchPower1",
-                    "action": "SetTarget",
-                    "arguments": [
-                        {
-                            "name": "newTargetValue",
-                            "value": s["action"]
-                        }
-                    ]
-                }
-            ]
-        }
-    ]
+        hours = int(i.split(":")[0])
+        minutes = int(i.split(":")[1])
+        time = vera.Time(hours, minutes)
+        timer = vera.DayOfWeekTimer(1, "time", s["days"], time)
+        timers.append(timer)
 
-    scene["triggers"] = []
+    # All modes except vacation
+    m = vera.Modes(home=True, away=True, night=True)
 
-    scene["timers"] = [
-        {
-            "id": 1,
-            "name": "schedule",
-            "type": "2",
-            "enabled": 1,
-            "days_of_week": s["days"],
-            "time": s["time"]
-       }
-    ]
+    sd = vera.SceneDefinition(s["name"], [], m, timers, [actions], room)
 
-    print "Adding scene", s["name"]
+    print "Adding scene %s..." % s["name"]
 
-    vera.create_scene(scene)
+    ve.create_scene(sd)
 
 

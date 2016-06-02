@@ -1,20 +1,42 @@
-Weekday morning on,"1,2,3,4,5",06:30,13,1
-Weekday morning off,"1,2,3,4,5",09:00,13,0
-Weekday evening on,"1,2,3,4,5",17:00,13,1
-Weekday evening off,"1,2,3,4,5",22:30,13,0
-Weekend morning on,"6,7",07:00,13,1
-Weekend morning off,"6,7",09:30,13,0
-Weekend evening on,"6,7",14:00,13,1
-Weekend evening off,"6,7",22:30,13,0
-a1,"6,7",10:14,13,1
-a2,"6,7",10:15,13,0
-a3,"6,7",10:16,13,1
-a4,"6,7",10:17,13,0
-a5,"6,7",10:18,13,1
-a6,"6,7",10:19,13,0
-a7,"6,7",10:20,13,1
-a8,"6,7",10:21,13,0
-a9,"6,7",10:22,13,1
-a10,"6,7",10:23,13,0
-a11,"6,7",10:24,13,1
-a12,"6,7",10:25,13,0
+
+Heating water weekday on,"1,2,3,4,5",Hot water,heat,HeatOn,06:30,16:00
+Heating water weekday off,"1,2,3,4,5",Hot water,heat,Off,08:15,18:30
+
+Heating water weekend on,"6,7",Hot water,heat,HeatOn,06:30,16:00
+Heating water weekend off,"6,7",Hot water,heat,Off,08:15,18:30
+
+Attic weekday on,"1,2,3,4,5",Attic stat,set,11.0,06:30,17:30
+Attic weekday off,"1,2,3,4,5",Attic stat,set,7.0,09:00,19:30
+
+Attic weekend on,"6,7",Attic stat,set,11.0,06:30,17:30
+Attic weekend off,"6,7",Attic stat,set,7.0,09:00,19:30
+
+Extension weekday on,"1,2,3,4,5",Extension stat,set,11.0,06:30,17:30
+Extension weekday off,"1,2,3,4,5",Extension stat,set,7.0,09:00,19:30
+
+Extension weekend on,"6,7",Extension stat,set,11.0,06:30,17:30
+Extension weekend off,"6,7",Extension stat,set,7.0,09:00,19:30
+
+Upstairs weekday on,"1,2,3,4,5",Upstairs stat,set,11.0,06:30,17:30
+Upstairs weekday off,"1,2,3,4,5",Upstairs stat,set,7.0,09:00,19:30
+
+Upstairs weekend on,"6,7",Upstairs stat,set,11.0,06:30,17:30
+Upstairs weekend off,"6,7",Upstairs stat,set,7.0,09:00,19:30
+
+Ground floor weekday on,"1,2,3,4,5",Ground floor stat,set,11.0,06:30,17:30
+Ground floor weekday off,"1,2,3,4,5",Ground floor stat,set,7.0,09:00,19:30
+
+Ground floor weekend on,"6,7",Ground floor stat,set,11.0,06:30,17:30
+Ground floor weekend off,"6,7",Ground floor stat,set,7.0,09:00,19:30
+
+Bathroom weekday on,"1,2,3,4,5",Bathroom stat,set,11.0,06:30,17:30
+Bathroom weekday off,"1,2,3,4,5",Bathroom stat,set,7.0,09:00,19:30
+
+Bathroom weekend on,"6,7",Bathroom stat,set,11.0,06:30,17:30
+Bathroom weekend off,"6,7",Bathroom stat,set,7.0,09:00,19:30
+
+Coach house weekday on,"1,2,3,4,5",Coach house stat,set,11.0,06:30,17:30
+Coach house weekday off,"1,2,3,4,5",Coach house stat,set,7.0,09:00,19:30
+
+Coach house weekend on,"6,7",Coach house stat,set,11.0,06:30,17:30
+Coach house weekend off,"6,7",Coach house stat,set,7.0,09:00,19:30

@@ -13,45 +13,58 @@ if len(sys.argv) != 2:
 config = json.loads(open(sys.argv[1], "r").read())
 
 if config.has_key("local"):
-    ve = vera.VeraLocal(config["local"]["address"])
+    vera = vera.VeraLocal(config["local"]["address"])
 else:
     user = config["remote"]["user"]
     password = config["remote"]["password"]
     device = config["remote"]["device"]
-    ve = vera.VeraRemote(user, password, device)
+    vera = vera.VeraRemote(user, password, device)
 
-#dev = ve.get_device("Humidity sensor")
+user_data = vera.get_user_data()
 
-#print dev.name, dev.device_json
+print json.dumps(user_data["scenes"], indent=4)
 
-#data = ve.get_file(dev.device_json)
-#print data
+sys.exit(0)
 
-#events = data["eventList2"]
+#print json.dumps(user_data, indent=4)
 
-#for i in events:
-#    print i["id"], i["label"]["text"]
+#print user_data["scenes"]
 
-#sys.exit(0)
+dev = vera.get_device("Humidity sensor")
 
-#print json.dumps(ve.get_file("D_TemperatureSensor1.json"),indent=4)
+print dev.name, dev.device_json
 
-#print ve.get_file("S_TemperatureSensor1.xml")
+data = vera.get_file(dev.device_json)
+print data
 
-room = ve.get_room_by_id(1)
+events = data["eventList2"]
+
+for i in events:
+    print i["id"], i["label"]["text"]
+
+sys.exit(0)
+
+print json.dumps(vera.get_file("D_TemperatureSensor1.json"),indent=4)
+
+#print vera.get_file("S_TemperatureSensor1.xml")
+
+
+sys.exit(0)
+
+room = vera.get_room_by_id(1)
 print room.id, room.name
 
-room = ve.get_room("Heating")
+room = vera.get_room("Heating")
 print room.id, room.name
 
 print
 
-dev = ve.get_device_by_id(3)
+dev = vera.get_device_by_id(3)
 print dev.id, dev.name
 
 print
 
-dev = ve.get_device("Sensor")
+dev = vera.get_device("Sensor")
 print dev.id, dev.name
 print "%s battery level: %d" % (dev.name, dev.get_battery())
 print "%s temperature sensor: %f" % (dev.name, dev.get_current_temperature())
@@ -59,12 +72,12 @@ print "%s humidity sensor: %d" % (dev.name, dev.get_current_humidity())
 
 print
 
-dev = ve.get_device("Humidity sensor")
+dev = vera.get_device("Humidity sensor")
 print "%s humidity sensor: %d" % (dev.name, dev.get_current_humidity())
 
 print
 
-dev = ve.get_device("Bathroom stat", room=room)
+dev = vera.get_device("Bathroom stat", room=room)
 print dev.id, dev.name
 print "%s temperature sensor: %f" % (dev.name, dev.get_current_temperature())
 print "%s is set to: %f" % (dev.name, dev.get_set_point())
@@ -72,7 +85,7 @@ dev.set_set_point(7.0)
 print "%s is set to: %f" % (dev.name, dev.get_set_point())
 
 print 
-dev = ve.get_device("Not used")
+dev = vera.get_device("Not used")
 print dev.id, dev.name
 dev.set_switch(True)
 print "%s switch set to: %s" % (dev.name, dev.get_switch())
@@ -81,21 +94,21 @@ print "%s switch set to: %s" % (dev.name, dev.get_switch())
 
 print
 
-dev = ve.get_device("Attic")
+dev = vera.get_device("Attic")
 print dev.id, dev.name
 print "Attic switch set to:", dev.get_switch()
 
 print
 
 print "Rooms:"
-rooms = ve.get_rooms()
+rooms = vera.get_rooms()
 for i in rooms:
     print "  %s: %s" % (i.id, i.name)
 
 print
 
 print "Devices:"
-devices = ve.get_devices()
+devices = vera.get_devices()
 for i in devices:
     if i.room != None:
         room = i.room.name
@@ -106,7 +119,7 @@ for i in devices:
 print
 
 print "Scenes:"
-scenes = ve.get_scenes()
+scenes = vera.get_scenes()
 for i in scenes:
     print "  %s: %s" % (i.id, i.name)
 

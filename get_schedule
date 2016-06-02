@@ -5,32 +5,36 @@ import sys
 import vera
 import csv
 
-if len(sys.argv) != 2:
-    sys.stderr.write("Usage:\n    get_schedule <config>\n")
+if len(sys.argv) != 3:
+    sys.stderr.write("Usage:\n    get_schedule <config> <room>\n")
     sys.exit(1)
 
 config = json.loads(open(sys.argv[1], "r").read())
 
 if config.has_key("local"):
-    vera = vera.VeraLocal(config["local"]["address"])
+    ve = vera.VeraLocal(config["local"]["address"])
 else:
     user = config["remote"]["user"]
     password = config["remote"]["password"]
     device = config["remote"]["device"]
-    vera = vera.VeraRemote(user, password, device)
+    ve = vera.VeraRemote(user, password, device)
 
-room = "Heating"
-room_id = 0
+#print json.dumps(ve.get_user_data()["scenes"], indent=4)
 
-user_data = vera.get_user_data()
+#sys.exit(0)
 
-for i in user_data["rooms"]:
-    if i["name"] == room:
-        room_id = i["id"]
+room = ve.get_room(sys.argv[2])
 
-status = vera.get_status()
+scenes = ve.get_scenes()
 
 output = csv.writer(sys.stdout)
+
+for s in scenes:
+    print json.dumps(s.definition.output(), indent=4)
+    print
+    sys.exit(0)
+
+sys.exit(0)
 
 if status.has_key("scenes"):
 

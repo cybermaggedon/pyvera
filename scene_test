@@ -1,0 +1,52 @@
+#!/usr/bin/env python
+
+import urllib, urllib2, json
+import sys
+import vera
+import csv
+import json
+
+if len(sys.argv) != 2:
+    sys.stderr.write("Usage:\n    get_schedule <config>\n")
+    sys.exit(1)
+
+config = json.loads(open(sys.argv[1], "r").read())
+
+if config.has_key("local"):
+    ve = vera.VeraLocal(config["local"]["address"])
+else:
+    user = config["remote"]["user"]
+    password = config["remote"]["password"]
+    device = config["remote"]["device"]
+    ve = vera.VeraRemote(user, password, device)
+
+t4 = vera.DayOfMonthTimer(1, "on", "1,3,4,21", vera.Time(10, 30))
+t1 = vera.DayOfWeekTimer(4, "on", "1,3,4", vera.Time(10, 30))
+t2 = vera.IntervalTimer(5, "switch on", minutes=12)
+t3 = vera.AbsoluteTimer(6, "auf", 2016, 6, 3, 12, 30)
+
+m = vera.Modes(home=True, night=True)
+
+d = ve.get_device("Sensor")
+
+r = ve.get_room("Heating")
+r.id = 2
+
+tr = vera.Trigger(41, "trigger", d, 1, [12], start=vera.Time(10,30),
+                  stop=vera.Time(11, 30), days_of_week="1,5,6")
+
+d2 = ve.get_device("Attic stat")
+d3 = ve.get_device("Not used")
+
+spa = vera.SetpointAction(d2, 8.0)
+sa = vera.SwitchAction(d3, 1)
+acts = vera.ActionSet(10, [spa, sa])
+
+sd = vera.SceneDefinition("Bunchy aloud", [tr], m, [t1, t2, t3, t4],
+                          [acts], r)
+
+ve.create_scene(sd.output())
+
+
+
+

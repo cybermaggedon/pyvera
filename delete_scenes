@@ -4,50 +4,26 @@ import json
 import sys
 import vera
   
-if len(sys.argv) != 2:
-    sys.stderr.write("Usage:\n    get_schedule <config>\n")
+if len(sys.argv) != 3:
+    sys.stderr.write("Usage:\n    get_schedule <config> <room>\n")
     sys.exit(1)
 
 config = json.loads(open(sys.argv[1], "r").read())
 
 if config.has_key("local"):
-    vera = vera.VeraLocal(config["local"]["address"])
+    ve = vera.VeraLocal(config["local"]["address"])
 else:
     user = config["remote"]["user"]
     password = config["remote"]["password"]
     device = config["remote"]["device"]
-    vera = vera.VeraRemote(user, password, device)
+    ve = vera.VeraRemote(user, password, device)
 
-room = "Heating"
-room_id = 0
+room = ve.get_room(sys.argv[2])
 
-user_data = vera.get_user_data()
+for i in ve.get_scenes():
+    if i.room != None:
+        if i.room == room:
+            print "Deleting scene %s" % i.name
 
-for i in user_data["rooms"]:
-    if i["name"] == room:
-        room_id = i["id"]
-
-print "Using room id", room_id
-
-status = vera.get_status()
-
-if status.has_key("scenes"):
-
-    for i in status["scenes"]:
-
-        scene = vera.get_scene(i["id"])
-
-        # These happen for deleted scenes?!  Why are they in the list?
-        if scene == None: continue
-        if not isinstance(scene, dict): continue
-
-        if not scene.has_key("room"): continue
-        if int(scene["room"]) != room_id: continue
-
-        if scene.has_key("name"):
-            print "Deleting scene", scene["name"]
-        else:
-            print "Deleting scene id %s" % i["id"]
-        
-        vera.delete_scene(i["id"])
+            ve.delete_scene(i)
 
