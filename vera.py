@@ -7,39 +7,84 @@ import httplib
 import time
 import requests
 
+class Device:
+
+    def __init__(self):
+        pass
+
+class Scene:
+
+    def __init__(self):
+        pass
+
+class Room:
+
+    def __init__(self):
+        pass
+
 class Vera:
 
     def __init__(self):
-        self.update_user_data()
+        self.update_state()
 
-    def update_user_data(self):
+    def update_state(self):
         ud = self.get('data_request?id=user_data&output_format=json')
         self.user_data = ud
 
+        self.rooms = {}
+        for i in self.user_data["rooms"]:
+            s = Room()
+            s.id = i["id"]
+            s.name = i["name"]
+            self.rooms[s.id] = s
+
+        self.devices = {}
+        for i in self.user_data["devices"]:
+            d = Device()
+            d.id = i["id"]
+            d.name = i["name"]
+            if i.has_key("room") and self.rooms.has_key(int(i["room"])):
+                d.room = self.rooms[int(i["room"])]
+            else:
+                d.room = None
+            self.devices[d.id] = d
+
+        self.scenes = {}
+        for i in self.user_data["scenes"]:
+            
+            if not self.rooms.has_key(int(i["room"])):
+                continue
+                    
+            s = Scene()
+            s.id = i["id"]
+            s.name = i["name"]
+            s.room = self.rooms[int(i["room"])]
+            
+            self.scenes[s.id] = s
+
     def get_devices(self):
 
-        devices = {}
-
-        for dev in self.user_data["devices"]:
-            devices[dev["id"]] = dev["name"]
+        devices = []
+        for i in self.devices:
+            devices.append(self.devices[i])
 
         return devices
 
     def get_scenes(self):
 
-        scenes = {}
-
-        for s in self.user_data["scenes"]:
-            scenes[s["id"]] = s["name"]
+        scenes = []
+        for i in self.scenes:
+            scenes.append(self.scenes[i])
 
         return scenes
 
-    def not_empty(self, payload):
-        
-        if (payload == ""):
-            return False
+    def get_rooms(self):
 
-        return True
+        rooms = []
+        for i in self.rooms:
+            rooms.append(self.rooms[i])
+
+        return rooms
 
     def get(self, path):
         raise RuntimeError("Not implemented")

@@ -1,0 +1,51 @@
+#!/usr/bin/env python
+
+import urllib, urllib2, json
+import sys
+import vera
+import csv
+import json
+
+if len(sys.argv) != 2:
+    sys.stderr.write("Usage:\n    get_schedule <config>\n")
+    sys.exit(1)
+
+config = json.loads(open(sys.argv[1], "r").read())
+
+if config.has_key("local"):
+    vera = vera.VeraLocal(config["local"]["address"])
+else:
+    user = config["remote"]["user"]
+    password = config["remote"]["password"]
+    device = config["remote"]["device"]
+    vera = vera.VeraRemote(user, password, device)
+
+user_data = vera.get("data_request?id=user_data&output_format=json")
+#user_data = vera.get_user_data()
+print json.dumps(user_data, sort_keys=True, indent=4)
+
+#sys.exit(0)
+
+print "Rooms:"
+rooms = vera.get_rooms()
+for i in rooms:
+    print "  %s: %s" % (i.id, i.name)
+
+print
+
+print "Devices:"
+devices = vera.get_devices()
+for i in devices:
+    if i.room != None:
+        room = i.room.name
+    else:
+        room = "n/a"
+    print "  %s: %s (%s)" % (i.id, i.name, room)
+
+print
+
+print "Scenes:"
+scenes = vera.get_scenes()
+for i in scenes:
+    print "  %s: %s" % (i.id, i.name)
+
