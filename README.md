@@ -191,7 +191,7 @@ sa = vera.SwitchAction(dev3, 1)
 
 # Create an action set of the two actions, which operates after a 10-second
 # delay.
-acts = vera.ActionSet(10, [spa, sa])
+acts = vera.Group(10, [spa, sa])
 
 # Create scene definition, containing name, triggers, modes, timers, actions
 # and the room.

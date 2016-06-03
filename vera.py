@@ -401,9 +401,27 @@ class AbsoluteTimer(Timer):
     parse = staticmethod(parse)
     
 class Trigger(Timer):
+    """
+    Describes a device-initiated event for triggering a scene.
+    """
     
     def __init__(self, id=None, name=None, device=None, template=None,
                  args=None, start=None, stop=None, days_of_week=None):
+        """
+        Creates a Trigger object.
+
+        :param id: Trigger identifier.
+        :param name: Human-readable name.
+        :param device: Device object identifying the device which is to
+        initiate the scene
+        :param template: is the template function for the device
+        :param args: is a sequence of arguments
+        :param start: a Time object specifying the start time for the period
+        for which this trigger is valid.
+        :param end: a Time object specifying the end time for which this trigger
+        is valid
+        :param days_of_week: days for which this trigger applies.
+        """
         self.id, self.name = id, name
         self.device = device
         self.template = template
@@ -416,7 +434,7 @@ class Trigger(Timer):
 
     def output(self):
         """
-        Formats the time value in a format suitable for LUUP comms.
+        Formats the value in a format suitable for LUUP comms.
         """
         args = []
         for i in range(0, len(self.args)):
@@ -485,6 +503,15 @@ class Trigger(Timer):
         return self.__dict__ == obj.__dict__ and type(self) == type(obj)
 
 class Action(object):
+    """
+    Base class describing an action.
+    """
+
+    def invoke(vera, s):
+        """
+        Invoke an action
+        """
+        pass
 
     def parse(vera, s):
         """
@@ -518,14 +545,26 @@ class Action(object):
         return self.__dict__ == obj.__dict__ and type(self) == type(obj)
 
 class SetpointAction(Action):
+    """
+    An action, which changes the 'set point' of a thermostat.
+
+    Note that when this action is applied to a battery-powered device, the
+    result may not be applied until the device does a rendezvous with the
+    controller.
+    """
 
     def __init__(self, device=None, value=None):
+        """
+        Creates a SetpointAction object.
+        :param device: Device object specifying the device
+        :param value: set-point value, a float
+        """
         self.device = device
         self.value = value
 
     def output(self):
         """
-        Formats the time value in a format suitable for LUUP comms.
+        Formats the value in a format suitable for LUUP comms.
         """
         return {
             "device": self.device.id, 
@@ -540,7 +579,9 @@ class SetpointAction(Action):
         }
 
     def invoke(self):
-
+        """
+        Immediately invoke the action
+        """
         base="data_request?id=action"
         action = "SetCurrentSetpoint"
         svc = "urn:upnp-org:serviceId:TemperatureSetpoint1"
@@ -564,14 +605,23 @@ class SetpointAction(Action):
     parse = staticmethod(parse)
 
 class SwitchAction(Action):
+    """
+    Action which operates against a standard power switch which has on/off
+    semantics.
+    """
 
     def __init__(self, device=None, value=None):
+        """
+        Creates a SwitchAction object.
+        :param device: Device object describing the device to apply
+        :param value: boolean value for switch
+        """
         self.device = device
         self.value = value
 
     def output(self):
         """
-        Formats the time value in a format suitable for LUUP comms.
+        Formats the value in a format suitable for LUUP comms.
         """
         return {
             "device": self.device.id, 
@@ -586,6 +636,9 @@ class SwitchAction(Action):
         }
 
     def invoke(self):
+        """
+        Implements the defined action.
+        """
 
         if self.value:
             value = 1
@@ -614,14 +667,23 @@ class SwitchAction(Action):
     parse = staticmethod(parse)
 
 class DimmerAction(Action):
+    """
+    Action which changes the dim level of a dimmer device
+    """
 
     def __init__(self, device=None, value=None):
+        """
+        Creates a DimmerAction object.
+        
+        :param device: a Device object specifying the device to be affected
+        :param value: Dim value, integer 0-100
+        """
         self.device = device
         self.value = value
 
     def output(self):
         """
-        Formats the time value in a format suitable for LUUP comms.
+        Formats the value in a format suitable for LUUP comms.
         """
         return {
             "device": self.device.id, 
@@ -636,6 +698,9 @@ class DimmerAction(Action):
         }
 
     def invoke(self):
+        """
+        Invokes the action, affecting the specified device.
+        """
 
         base="data_request?id=action"
         action = "SetLoadLevelTarget"
@@ -659,8 +724,17 @@ class DimmerAction(Action):
     parse = staticmethod(parse)
 
 class HeatingAction(Action):
+    """
+    Action which changes the operational mode of a heating device
+    """
 
     def __init__(self, device=None, value=None):
+        """
+        Creates a HeatingAction device.
+
+        :param device: a Device object specifying the device to be affected
+        :param value: string, one of: Off, HeatOn
+        """
         self.device = device
         self.value = value
 
@@ -681,6 +755,9 @@ class HeatingAction(Action):
         }
 
     def invoke(self):
+        """
+        Invokes the action, affecting the specified device.
+        """
 
         base="data_request?id=action"
         action = "SetModeTarget"
@@ -703,9 +780,18 @@ class HeatingAction(Action):
 
     parse = staticmethod(parse)
 
-class ActionSet(object):
+class Group(object):
+    """
+    A list of Action objects plus a delay time for when the actions are applied,
+    """
 
     def __init__(self, delay=None, actions=None):
+        """
+        Creates an Group object
+
+        :param delay: delay in seconds
+        :param actions: sequence of Action objects
+        """
         self.delay = delay
         self.actions = actions
 
@@ -725,11 +811,11 @@ class ActionSet(object):
 
     def parse(vera, s):
         """
-        Converts LUUP group value to an ActionSet object.
+        Converts LUUP group value to an Group object.
 
         :param s: Value from LUUP comms.
         """
-        aset = ActionSet()
+        aset = Group()
 
         aset.delay = s.get("delay", 0)
 
@@ -827,7 +913,7 @@ class SceneDefinition(object):
 
         if s.has_key("groups"):
             for i in s["groups"]:
-                sd.actions.append(ActionSet.parse(vera, i))
+                sd.actions.append(Group.parse(vera, i))
 
         if s.has_key("room"):
             if s["room"] == 0:

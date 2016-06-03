@@ -40,7 +40,7 @@ d3 = ve.get_device("Not used")
 
 spa = vera.SetpointAction(d2, 8.0)
 sa = vera.SwitchAction(d3, 1)
-acts = vera.ActionSet(10, [spa, sa])
+acts = vera.Group(10, [spa, sa])
 
 sd = vera.SceneDefinition("Bunchy aloud", [tr], m, [t1, t2, t3, t4],
                           [acts], r)

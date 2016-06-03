@@ -56,7 +56,7 @@ for s in schedule:
     else:
         raise RuntimeError, "Don't know about action '%s'" % s["action"]
 
-    actions = vera.ActionSet(0, [action])
+    actions = vera.Group(0, [action])
 
     timers = []
 
