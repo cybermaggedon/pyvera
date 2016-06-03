@@ -1,4 +1,38 @@
 
+"""
+Communication with the LUUP engine on a MiCasaVerde Vera device.
+
+To use, either initialise a VeraRemote or VeraLocal object, or use the
+connect function.
+
+>>> import vera
+>>>
+>>> # Remote connection
+>>> device_id = 45191949
+>>> ve = vera.VeraRemote("user", "password", device_id)
+Account number: 100000
+Server device: vera-us-oem-device12.mios.com
+Server relay: vera-us-oem-relay41.mios.com
+Connected to remote device.
+>>>
+>>> # Local connection
+>>> ve = vera.VeraLocal("192.168.0.10")
+>>>
+>>> open("LUUP-AUTH.json","r").read()
+{
+  "remote": {
+    "user": "user",
+    "password": "password",
+    "device": "49876656"
+  }
+}
+>>> ve = vera.connect()
+Account number: 100000
+Server device: vera-us-oem-device12.mios.com
+Server relay: vera-us-oem-relay41.mios.com
+Connected to remote device.
+"""
+
 import urllib, urllib2, json
 import sys
 import sha
@@ -8,13 +42,31 @@ import time
 import requests
 
 class Time(object):
+    """
+    Time object represents a time value in a 24-hour day i.e. a value
+    we might normally represent HH:MM:SS.
+    """
 
     def __init__(self, h=0, m=0, s=0, after_sunrise=False, after_sunset=False):
+        """
+        Constructs a new Time object.
+        :param h: Hour value
+        :param m: Minute value
+        :param s: Seconds value
+        :param after_sunrise: True if value is relative to sunrise
+        :param after_sunset: True if the time value is relative to sunset
+        """
+        assert (after_sunrise and after_sunset) == False, \
+            "Must not specify both after_sunrise and after_sunset"
+        
         self.time = (h, m, s)
         self.after_sunrise = after_sunrise
         self.after_sunset = after_sunset
 
     def output(self):
+        """
+        Formats the time value in a format suitable for LUUP comms.
+        """
         if self.after_sunrise:
             return "%02d:%02d:%02dR" % self.time
         if self.after_sunset:
@@ -22,19 +74,53 @@ class Time(object):
         return "%02d:%02d:%02d" % self.time
 
     def parse(s):
+        """
+        Converts LUUP time values to a Time object.
+
+        :param s: Value from LUUP comms.
+        """
+
+        rise = False
+        set = False
+        if s[-1:] == "R":
+            rise = True
+            s = s[:-1]
+        elif s[-1:] == "T":
+            set = True
+            s = s[:-1]
+        
         x = s.split(":")
         if len(x) == 1:
             x.append("0")
         if len(x) == 2:
             x.append("0")
         
-        return Time(int(x[0]), int(x[1]), int(x[2]))
+        return Time(int(x[0]), int(x[1]), int(x[2]), after_sunrise=rise,
+                    after_sunset=set)
 
     parse = staticmethod(parse)
 
+    def __str__(self):
+        return str(self.__dict__)
+
+    def __eq__(self, obj):
+        return self.__dict__ == obj.__dict__ and type(self) == type(obj)
+
 class Timer(object):
+    """
+    Base class for a timer value.  There are four types of timer
+    implemented in the four subclasses.
+    """
 
     def parse(s):
+        """
+        Converts LUUP timer values to a Timer object.
+
+        :param s: Value from LUUP comms.
+        """
+
+        if s["type"] == 1:
+            return IntervalTimer.parse(s)
 
         if s["type"] == 2:
             return DayOfWeekTimer.parse(s)
@@ -42,19 +128,45 @@ class Timer(object):
         if s["type"] == 3:
             return DayOfMonthTimer.parse(s)
 
+        if s["type"] == 4:
+            return AbsoluteTimer.parse(s)
+
         raise RuntimeError, "Parsing timer not implemented."
 
     parse = staticmethod(parse)
 
+    def __str__(self):
+        return str(self.__dict__)
+
+    def __eq__(self, obj):
+        return self.__dict__ == obj.__dict__
+
 class DayOfWeekTimer(Timer):
+    """
+    Represents a daily timer which fires at a specific point in a
+    24-hour day.  The timer can be restricted so that it only operates on
+    certain days in the week.
+    """
 
     def __init__(self, id=None, name=None, days=None, time=None):
+        """
+        Creates a DayOfWeekTimer object.
+
+        :param id: Integer identifier for the timer.
+        :param name: A human-readable name.
+        :param days: A string containing comma-separated digits representing
+        the days of the week, 1=Monday etc.
+        :param time: A Time object representing the time.
+        """
         self.id = id
         self.name = name
         self.days = days
         self.time = time
 
     def output(self):
+        """
+        Formats the time value in a format suitable for LUUP comms.
+        """
         return {
             "id": self.id,
             "name": self.name,
@@ -65,6 +177,11 @@ class DayOfWeekTimer(Timer):
        }
 
     def parse(s):
+        """
+        Converts LUUP day-of-week timer values to a DayOfWeekTimer object.
+
+        :param s: Value from LUUP comms.
+        """
         t = DayOfWeekTimer()
         t.id = s.get("id", None)
         t.name = s.get("name", None)
@@ -78,14 +195,31 @@ class DayOfWeekTimer(Timer):
     parse = staticmethod(parse)
     
 class DayOfMonthTimer(Timer):
+    """
+    Represents a daily timer which fires at a specific point in a
+    24-hour day.  The timer can be restricted so that it only operates on
+    certain days in the month.
+    """
 
-    def __init__(self, id, name, days, time):
+    def __init__(self, id=None, name=None, days=None, time=None):
+        """
+        Creates a new DayOfMonthTimer.
+
+        :param id: Integer identifier for the timer.
+        :param name: A human-readable name.
+        :param days: A string containing comma-separated digits representing
+        the days of the month, 1=1st etc.
+        :param time: A Time object representing the time.
+        """
         self.id = id
         self.name = name
         self.days = days
         self.time = time
 
     def output(self):
+        """
+        Formats the time value in a format suitable for LUUP comms.
+        """
         return {
             "id": self.id,
             "name": self.name,
@@ -96,6 +230,11 @@ class DayOfMonthTimer(Timer):
         }
 
     def parse(s):
+        """
+        Converts LUUP day-of-month timer values to a DayOfMonthTimer object.
+
+        :param s: Value from LUUP comms.
+        """
         t = DayOfMonthTimer()
         t.id = s.get("id", None)
         t.name = s.get("name", None)
@@ -107,16 +246,45 @@ class DayOfMonthTimer(Timer):
         return t
 
     parse = staticmethod(parse)
-
     
 class IntervalTimer(Timer):
-    def __init__(self, id, name, seconds=0, minutes=0, hours=0, days=0):
+    """
+    A timer describing a regularly occuring event, whose period can be
+    described in terms of a number of seconds, minutes, hours or days.
+    """
+    
+    def __init__(self, id=None, name=None, seconds=0, minutes=0, hours=0,
+                 days=0):
+        """
+        Create a new IntervalTimer object.
+
+        :param id: Integer identified for timer.
+        :param name: Human-readable name for the timer.
+        :param seconds: Interval value in seconds.
+        :param minutes: Interval value in minutes.
+        :param hours: Interval value in hours.
+        :param days: Interval value in days.
+
+        """
+
+        specd = 0
+        if seconds != 0: specd = specd + 1
+        if minutes != 0: specd = specd + 1
+        if hours != 0: specd = specd + 1
+        if days != 0: specd = specd + 1
+
+        assert specd < 2, \
+            "Should specify only one of seconds, minutes, hours and days"
+
         self.id = id
         self.name = name
         (self.seconds, self.minutes, self.hours, self.days) = \
             (seconds, minutes, hours, days)
 
     def output(self):
+        """
+        Formats the value in a format suitable for LUUP comms.
+        """
         
         if self.days > 0:
             interval = "%dd" % self.days
@@ -135,15 +303,56 @@ class IntervalTimer(Timer):
             "interval": interval
         }
 
-class AbsoluteTimer(object):
+    def parse(s):
+        """
+        Converts LUUP interval timer values to a IntervalTimer object.
 
-    def __init__(self, id, name, year, month, date, hours=0, minutes=0,
-                 seconds=0):
+        :param s: Value from LUUP comms.
+        """
+        t = IntervalTimer()
+        t.id = s.get("id", None)
+        t.name = s.get("name", None)
+        if s.has_key("interval"):
+            ival = s["interval"]
+            if ival[-1:] == "s":
+                t.seconds = int(ival[:-1])
+            if ival[-1:] == "m":
+                t.minutes = int(ival[:-1])
+            if ival[-1:] == "h":
+                t.hours = int(ival[:-1])
+            if ival[-1:] == "d":
+                t.days = int(ival[:-1])
+        return t
+
+    parse = staticmethod(parse)
+    
+class AbsoluteTimer(Timer):
+    """
+    Describes a timer which fires only once, at a described point in time.
+    """
+
+    def __init__(self, id=None, name=None, year=None, month=None, date=None,
+                 hours=0, minutes=0, seconds=0):
+        """
+        Creates an AbsoluteTimer object.
+
+        :param id: Identified for the timer.
+        :param name: Human-readble name for the timer.
+        :param year: Absolute year value, 4-digit.
+        :param month: Absolute month value, 1-12.
+        :param date: Absolute date value, 1-31.
+        :param hours: Hour value.
+        :param minutes: Minute value.
+        :param seconds: Seconds value.
+        """
         self.id, self.name = id, name
         (self.year, self.month, self.date) = (year, month, date)
         (self.hours, self.minutes, self.seconds) = (hours, minutes, seconds)
 
     def output(self):
+        """
+        Formats the timer value in a format suitable for LUUP comms.
+        """
         time = "%04d-%02d-%02d %02d:%02d:%02d" % (self.year, self.month, \
                 self.date, self.hours, self.minutes, self.seconds)
         return {
@@ -154,23 +363,67 @@ class AbsoluteTimer(object):
             "abstime": time
         }
 
+    def parse(s):
+        """
+        Converts LUUP absolute timer values to an AbsoluteTimer object.
+
+        :param s: Value from LUUP comms.
+        """
+
+        t = AbsoluteTimer()
+        t.id = s.get("id", None)
+        t.name = s.get("name", None)
+        
+        if s.has_key("abstime"):
+
+            parts = s["abstime"].split(" ")
+
+            if len(parts) != 2:
+                raise RuntimeError, "Invalid date format"
+
+            dateparts = parts[0].split("-")
+            timeparts = parts[1].split(":")
+            
+            if len(dateparts) != 3:
+                raise RuntimeError, "Invalid date format"
+            if len(timeparts) != 3:
+                raise RuntimeError, "Invalid date format"
+
+            t.year = int(dateparts[0])
+            t.month = int(dateparts[1])
+            t.date = int(dateparts[2])
+            t.hours = int(timeparts[0])
+            t.minutes = int(timeparts[1])
+            t.seconds = int(timeparts[2])
+
+        return t
+
+    parse = staticmethod(parse)
+    
 class Trigger(Timer):
     
-    def __init__(self, id=None, name=None, device=None, template=None, args=[],
-                 start=None, stop=None, days_of_week=None):
+    def __init__(self, id=None, name=None, device=None, template=None,
+                 args=None, start=None, stop=None, days_of_week=None):
         self.id, self.name = id, name
         self.device = device
         self.template = template
-        self.args = args
+        if args == None:
+            self.args = []
+        else:
+            self.args = args
         self.start, self.stop = start, stop
         self.days_of_week = days_of_week
 
     def output(self):
+        """
+        Formats the time value in a format suitable for LUUP comms.
+        """
         args = []
         for i in range(0, len(self.args)):
             args.append({"id": i + 1, "value": self.args[i]})
 
         val = {
+            "id": self.id,
             "device": self.device.id,
             "enabled": 1,
             "name": self.name,
@@ -188,6 +441,12 @@ class Trigger(Timer):
         return val
 
     def parse(vera, s):
+        """
+        Converts LUUP trigger values to a Trigger object.
+
+        :param vera: Vera object.
+        :param s: Value from LUUP comms.
+        """
 
         t = Trigger()
 
@@ -219,12 +478,27 @@ class Trigger(Timer):
 
     parse = staticmethod(parse)
 
+    def __str__(self):
+        return str(self.__dict__)
+
+    def __eq__(self, obj):
+        return self.__dict__ == obj.__dict__ and type(self) == type(obj)
+
 class Action(object):
 
     def parse(vera, s):
+        """
+        Converts LUUP action values to an Action object.
+
+        :param vera: A Vera object.
+        :param s: Value from LUUP comms.
+        """
 
         if s["service"] == "urn:upnp-org:serviceId:TemperatureSetpoint1":
             return SetpointAction.parse(vera, s)
+
+        if s["service"] == "urn:upnp-org:serviceId:Dimming1":
+            return DimmerAction.parse(vera, s)
 
         if s["service"] == "urn:upnp-org:serviceId:SwitchPower1":
             return SwitchAction.parse(vera, s)
@@ -237,6 +511,12 @@ class Action(object):
 
     parse = staticmethod(parse)
 
+    def __str__(self):
+        return str(self.__dict__)
+
+    def __eq__(self, obj):
+        return self.__dict__ == obj.__dict__ and type(self) == type(obj)
+
 class SetpointAction(Action):
 
     def __init__(self, device=None, value=None):
@@ -244,6 +524,9 @@ class SetpointAction(Action):
         self.value = value
 
     def output(self):
+        """
+        Formats the time value in a format suitable for LUUP comms.
+        """
         return {
             "device": self.device.id, 
             "action": "SetCurrentSetpoint", 
@@ -255,8 +538,24 @@ class SetpointAction(Action):
             ], 
             "service": "urn:upnp-org:serviceId:TemperatureSetpoint1"
         }
+
+    def invoke(self):
+
+        base="data_request?id=action"
+        action = "SetCurrentSetpoint"
+        svc = "urn:upnp-org:serviceId:TemperatureSetpoint1"
+        path = "%s&DeviceNum=%d&serviceId=%s&action=%s&NewCurrentSetpoint=%f" \
+               % (base, self.device.id, svc, action, self.value)
+        status = self.device.vera.get(path)
+        return status
     
     def parse(vera, s):
+        """
+        Converts LUUP SetCurrentSetpoint action values to a SetpointAction
+        object.
+
+        :param s: Value from LUUP comms.
+        """
         ha = SetpointAction()
         ha.device = vera.get_device_by_id(s["device"])
         ha.value = s["arguments"][0]["value"]
@@ -271,6 +570,9 @@ class SwitchAction(Action):
         self.value = value
 
     def output(self):
+        """
+        Formats the time value in a format suitable for LUUP comms.
+        """
         return {
             "device": self.device.id, 
             "action": "SetTarget", 
@@ -283,8 +585,73 @@ class SwitchAction(Action):
             "service": "urn:upnp-org:serviceId:SwitchPower1"
         }
 
+    def invoke(self):
+
+        if self.value:
+            value = 1
+        else:
+            value = 0
+
+        base="data_request?id=action"
+        action = "SetTarget"
+        svc = "urn:upnp-org:serviceId:SwitchPower1"
+        path = "%s&DeviceNum=%d&serviceId=%s&action=%s&newTargetValue=%d" \
+               % (base, self.device.id, svc, action, value)
+        status = self.device.vera.get(path)
+        return status
+
     def parse(vera, s):
+        """
+        Converts LUUP SetTarget values to a SwitchAction object.
+
+        :param s: Value from LUUP comms.
+        """
         ha = SwitchAction()
+        ha.device = vera.get_device_by_id(s["device"])
+        ha.value = s["arguments"][0]["value"]
+        return ha
+
+    parse = staticmethod(parse)
+
+class DimmerAction(Action):
+
+    def __init__(self, device=None, value=None):
+        self.device = device
+        self.value = value
+
+    def output(self):
+        """
+        Formats the time value in a format suitable for LUUP comms.
+        """
+        return {
+            "device": self.device.id, 
+            "action": "SetLoadLevelTarget", 
+            "arguments": [
+                {
+                    "name": "newTargetValue", 
+                    "value": self.value
+                }
+            ], 
+            "service": "urn:upnp-org:serviceId:Dimming1"
+        }
+
+    def invoke(self):
+
+        base="data_request?id=action"
+        action = "SetLoadLevelTarget"
+        svc = "urn:upnp-org:serviceId:Dimming1"
+        path = "%s&DeviceNum=%d&serviceId=%s&action=%s&newTargetValue=%d" \
+               % (base, self.device.id, svc, action, self.value)
+        status = self.device.vera.get(path)
+        return status
+
+    def parse(vera, s):
+        """
+        Converts LUUP values to a DimmerAction object.
+
+        :param s: Value from LUUP comms.
+        """
+        ha = DimmerAction()
         ha.device = vera.get_device_by_id(s["device"])
         ha.value = s["arguments"][0]["value"]
         return ha
@@ -298,6 +665,9 @@ class HeatingAction(Action):
         self.value = value
 
     def output(self):
+        """
+        Formats the time value in a format suitable for LUUP comms.
+        """
         return {
             "device": self.device.id, 
             "action": "SetModeTarget", 
@@ -310,7 +680,22 @@ class HeatingAction(Action):
             "service": "urn:upnp-org:serviceId:HVAC_UserOperatingMode1"
         }
 
+    def invoke(self):
+
+        base="data_request?id=action"
+        action = "SetModeTarget"
+        svc = "urn:upnp-org:serviceId:HVAC_UserOperatingMode1"
+        path = "%s&DeviceNum=%d&serviceId=%s&action=%s&NewModeTarget=%s" \
+               % (base, self.device.id, svc, action, self.value)
+        status = self.device.vera.get(path)
+        return status
+
     def parse(vera, s):
+        """
+        Converts LUUP values to a HeatingAction object.
+
+        :param s: Value from LUUP comms.
+        """
         ha = HeatingAction()
         ha.device = vera.get_device_by_id(s["device"])
         ha.value = s["arguments"][0]["value"]
@@ -327,6 +712,9 @@ class ActionSet(object):
         if self.actions == None: self.actions = []
 
     def output(self):
+        """
+        Formats the time value in a format suitable for LUUP comms.
+        """
         acts = []
         for i in self.actions:
             acts.append(i.output())
@@ -336,6 +724,11 @@ class ActionSet(object):
         }
 
     def parse(vera, s):
+        """
+        Converts LUUP group value to an ActionSet object.
+
+        :param s: Value from LUUP comms.
+        """
         aset = ActionSet()
 
         aset.delay = s.get("delay", 0)
@@ -347,6 +740,12 @@ class ActionSet(object):
         return aset
 
     parse = staticmethod(parse)
+
+    def __str__(self):
+        return str(self.__dict__)
+
+    def __eq__(self, obj):
+        return self.__dict__ == obj.__dict__ and type(self) == type(obj)
 
 class SceneDefinition(object):
 
@@ -375,6 +774,9 @@ class SceneDefinition(object):
         self.room = room
 
     def output(self):
+        """
+        Formats the time value in a format suitable for LUUP comms.
+        """
 
         triggers = []
         for i in self.triggers:
@@ -406,6 +808,11 @@ class SceneDefinition(object):
         return val
 
     def parse(vera, s):
+        """
+        Converts LUUP scene to a SceneDefinition object.
+
+        :param s: Value from LUUP comms.
+        """
 
         sd = SceneDefinition()
         
@@ -435,12 +842,21 @@ class SceneDefinition(object):
 
     parse = staticmethod(parse)
 
+    def __str__(self):
+        return str(self.__dict__)
+
+    def __eq__(self, obj):
+        return self.__dict__ == obj.__dict__ and type(self) == type(obj)
+
 class Modes(object):
     def __init__(self, home=False, away=False, night=False, vacation=False):
         self.home, self.away, self.night = home, away, night
         self.vacation = vacation
 
     def output(self):
+        """
+        Formats the time value in a format suitable for LUUP comms.
+        """
         val = ""
         if self.home:
             val = "1"
@@ -456,6 +872,12 @@ class Modes(object):
         return val
 
     def parse(vera, s):
+        """
+        Converts LUUP modeSet values to a Mode object.
+
+        :param vera: A vera object.
+        :param s: Value from LUUP comms.
+        """
         x = s.split(",")
         y = {}
         for i in x:
@@ -469,79 +891,84 @@ class Modes(object):
 
     parse = staticmethod(parse)
 
+    def __str__(self):
+        return str(self.__dict__)
+
+    def __eq__(self, obj):
+        return self.__dict__ == obj.__dict__ and type(self) == type(obj)
+
 class Device(object):
 
     def __init__(self):
         pass
 
-    def get_switch(self):
+    def get_variable(self, svc, var):
         action = "variableget"
-        svc = "urn:upnp-org:serviceId:SwitchPower1"
-        var = "Status"
         path = "data_request?id=%s&DeviceNum=%d&serviceId=%s&Variable=%s" \
                % (action, self.id, svc, var)
-        status = self.vera.get(path)
+        return self.vera.get(path)
 
+    def get_switch(self):
+        status = self.get_variable("urn:upnp-org:serviceId:SwitchPower1",
+                                   "Status")
         return status == 1
 
-    def set_switch(self, value):
-        if value:
-            value = 1
-        else:
-            value = 0
-            
-        action = "variableset"
-        svc = "urn:upnp-org:serviceId:SwitchPower1"
-        var = "Status"
-        path = "data_request?id=%s&DeviceNum=%d&serviceId=%s&Variable=%s&Value=%d" \
-               % (action, self.id, svc, var, value)
-        status = self.vera.get(path)
-        return status
+    def get_dimmer(self):
+        v = self.get_variable("urn:upnp-org:serviceId:Dimming1",
+                              "LoadLevelStatus")
+        return v
 
-    def get_current_temperature(self):
-        action = "variableget"
-        svc = "urn:upnp-org:serviceId:TemperatureSensor1"
-        var = "CurrentTemperature"
-        path = "data_request?id=%s&DeviceNum=%d&serviceId=%s&Variable=%s" \
-               % (action, self.id, svc, var)
-        status = self.vera.get(path)
-        return status
+    def get_temperature(self):
+        return self.get_variable("urn:upnp-org:serviceId:TemperatureSensor1",
+                                 "CurrentTemperature")
 
-    def get_current_humidity(self):
-        action = "variableget"
-        svc = "urn:micasaverde-com:serviceId:HumiditySensor1"
-        var = "CurrentLevel"
-        path = "data_request?id=%s&DeviceNum=%d&serviceId=%s&Variable=%s" \
-               % (action, self.id, svc, var)
-        status = self.vera.get(path)
-        return status
+    def get_humidity(self):
+        v = self.get_variable("urn:micasaverde-com:serviceId:HumiditySensor1",
+                              "CurrentLevel")
+        return v
 
-    def get_set_point(self):
-        action = "variableget"
-        svc = "urn:upnp-org:serviceId:TemperatureSetpoint1"
-        var = "CurrentSetpoint"
-        path = "data_request?id=%s&DeviceNum=%d&serviceId=%s&Variable=%s" \
-               % (action, self.id, svc, var)
-        status = self.vera.get(path)
-        return status
+    def get_setpoint(self):
+        v = self.get_variable("urn:upnp-org:serviceId:TemperatureSetpoint1",
+                              "CurrentSetpoint")
+        return v
 
-    def set_set_point(self, value):
-        action = "variableset"
-        svc = "urn:upnp-org:serviceId:TemperatureSetpoint1"
-        var = "CurrentSetpoint"
-        path = "data_request?id=%s&DeviceNum=%d&serviceId=%s&Variable=%s&Value=%f" \
-               % (action, self.id, svc, var, value)
-        status = self.vera.get(path)
-        return status
+    def get_heating(self):
+        v = self.get_variable("urn:upnp-org:serviceId:HVAC_UserOperatingMode1",
+                              "ModeStatus")
+        return v
 
     def get_battery(self):
-        action = "variableget"
-        svc = "urn:micasaverde-com:serviceId:HaDevice1"
-        var = "BatteryLevel"
-        path = "data_request?id=%s&DeviceNum=%d&serviceId=%s&Variable=%s" \
-               % (action, self.id, svc, var)
-        status = self.vera.get(path)
-        return status
+        v = self.get_variable("urn:micasaverde-com:serviceId:HaDevice1",
+                              "BatteryLevel")
+        return v
+
+    def set_switch(self, value):
+        act = SwitchAction(self, value)
+        return act.invoke()
+
+    def set_dimmer(self, value):
+        act = DimmerAction(self, value)
+        return act.invoke()
+
+    def set_setpoint(self, value):
+        act = SetpointAction(self, value)
+        return act.invoke()
+
+    def set_heating(self, value):
+        act = HeatingAction(self, value)
+        return act.invoke()
+
+    def __str__(self):
+        return str(self.__dict__)
+
+    def __eq__(self, obj):
+        return self.__dict__ == obj.__dict__ and type(self) == type(obj)
+
+    def __str__(self):
+        return str(self.__dict__)
+
+    def __eq__(self, obj):
+        return self.__dict__ == obj.__dict__ and type(self) == type(obj)
 
 class Scene(object):
 
@@ -551,10 +978,22 @@ class Scene(object):
     def delete(self):
         self.vera.delete_scene(self)
 
+    def __str__(self):
+        return str(self.__dict__)
+
+    def __eq__(self, obj):
+        return self.__dict__ == obj.__dict__ and type(self) == type(obj)
+
 class Room(object):
 
     def __init__(self):
         pass
+
+    def __str__(self):
+        return str(self.__dict__)
+
+    def __eq__(self, obj):
+        return self.__dict__ == obj.__dict__ and type(self) == type(obj)
 
 class Vera(object):
 
@@ -725,6 +1164,12 @@ class Vera(object):
         payload = self.get('data_request?id=scene&action=create&json=%s' % s)
         return payload
 
+    def __str__(self):
+        return str(self.__dict__)
+
+    def __eq__(self, obj):
+        return self.__dict__ == obj.__dict__ and type(self) == type(obj)
+
 class VeraLocal(Vera):
 
     def __init__(self, host, port = 3480):
@@ -840,4 +1285,16 @@ class VeraRemote(Vera):
             pass
 
         return response.text
+
+def connect(config="LUUP-AUTH.json"):
         
+    config = json.loads(open(config, "r").read())
+
+    if config.has_key("local"):
+        return VeraLocal(config["local"]["address"])
+    else:
+        user = config["remote"]["user"]
+        password = config["remote"]["password"]
+        device = config["remote"]["device"]
+        return VeraRemote(user, password, device)
+

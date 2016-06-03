@@ -26,6 +26,32 @@ ve = vera.VeraLocal("192.168.0.10")
 ve = vera.VeraRemote("username", "password", "1234123456")
 ```
 
+### Configure
+
+Using a configuration file.  Create ```LUUP-AUTH.json```.  Example forms for
+local access:
+```
+{
+    "local": {
+         "address": "192.168.0.10"
+    }
+}
+````
+and for remote:
+```
+{
+  "remote": {
+    "user": "USERNAME",
+    "password": "PASSWORD",
+    "device": "4321987654"
+  }
+}
+```
+Then just..
+```
+ve = vera.connect()
+```
+
 ### Iterate over devices
 
 ```
@@ -52,6 +78,19 @@ print "%s switch set to: %s" % (dev.name, dev.get_switch())
 dev.set_switch(True)
 ```
 
+For dimmers:
+
+```
+# Get device by name
+dev = ve.get_device("Lounge dimmer")
+
+# Report status
+print "%s dimmer set to: %d" % (dev.name, dev.get_dimmer())
+
+# Set dimmer
+dev.set_dimmer(75)
+```
+
 Thermostat example:
 ```
 # Get the room
@@ -61,19 +100,19 @@ dev = ve.get_room("Bathroom")
 dev = ve.get_device("Bathroom stat", room=room)
 
 # Report thermostat
-print "%s current temperature: %f" % (dev.name, dev.get_current_temperature())
-print "%s is set to: %f" % (dev.name, dev.get_set_point())
+print "%s current temperature: %f" % (dev.name, dev.get_temperature())
+print "%s is set to: %f" % (dev.name, dev.get_setpoint())
 
 # Set thermostat to 7 degrees.  Assuming device is set to operate in Celsius.
-dev.set_set_point(7.0)
+dev.set_setpoint(7.0)
 ```
 
 A temperature/humidity sensor:
 ```
 dev = ve.get_device("Sensor")
 print "%s battery level: %d" % (dev.name, dev.get_battery())
-print "%s temperature sensor: %f" % (dev.name, dev.get_current_temperature())
-print "%s humidity sensor: %d" % (dev.name, dev.get_current_humidity())
+print "%s temperature sensor: %f" % (dev.name, dev.get_temperature())
+print "%s humidity sensor: %d" % (dev.name, dev.get_humidity())
 ```
 
 ### Discover rooms

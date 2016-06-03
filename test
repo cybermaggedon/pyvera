@@ -20,6 +20,16 @@ else:
     device = config["remote"]["device"]
     ve = vera.VeraRemote(user, password, device)
 
+dev = ve.get_device("Not used")
+
+print dev.get_switch()
+dev.set_switch(False)
+print dev.get_switch()
+dev.set_switch(True)
+print dev.get_switch()
+
+sys.exit(0)
+
 room = ve.get_room_by_id(1)
 print room.id, room.name
 
