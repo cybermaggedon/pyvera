@@ -935,13 +935,24 @@ class SceneDefinition(object):
         return self.__dict__ == obj.__dict__ and type(self) == type(obj)
 
 class Modes(object):
+    """
+    Describes the set of modes for which a scene will be valid
+    """
+    
     def __init__(self, home=False, away=False, night=False, vacation=False):
+        """
+        Creates a Modes object
+        :param home: True for scene to be valid in home mode
+        :param away: True for scene to be valid in away mode
+        :param night: True for scene to be valid in night mode
+        :param vacation: True for scene to be valid in vacation mode
+        """
         self.home, self.away, self.night = home, away, night
         self.vacation = vacation
 
     def output(self):
         """
-        Formats the time value in a format suitable for LUUP comms.
+        Formats the value in a format suitable for LUUP comms.
         """
         val = ""
         if self.home:
@@ -984,63 +995,125 @@ class Modes(object):
         return self.__dict__ == obj.__dict__ and type(self) == type(obj)
 
 class Device(object):
+    """
+    Describes a LUUP device
+    """
 
     def __init__(self):
+        """
+        Creates a Device object
+        """
         pass
 
     def get_variable(self, svc, var):
+        """
+        Queries the LUUP engine for the value of a variable.
+        
+        :param svc: LUUP service
+        :param var: Variable name.
+        """
         action = "variableget"
         path = "data_request?id=%s&DeviceNum=%d&serviceId=%s&Variable=%s" \
                % (action, self.id, svc, var)
         return self.vera.get(path)
 
     def get_switch(self):
+        """
+        Get the current state of a power switch device.  Returns a boolean
+        value.
+        """
         status = self.get_variable("urn:upnp-org:serviceId:SwitchPower1",
                                    "Status")
         return status == 1
 
     def get_dimmer(self):
+        """
+        Get the current state of a dimmer device.  Returns an integer in
+        the range 0-100.
+        """
         v = self.get_variable("urn:upnp-org:serviceId:Dimming1",
                               "LoadLevelStatus")
         return v
 
     def get_temperature(self):
+        """
+        Get the current value of a temperature sensor device.  Returns a
+        floating point value.  The temperature scale in use is dependent on 
+        device configuration.
+        """
+
         return self.get_variable("urn:upnp-org:serviceId:TemperatureSensor1",
                                  "CurrentTemperature")
 
     def get_humidity(self):
+        """
+        Get the current value of a humidity sensor device.  Returns a
+        integer value representing % relative humidity.
+        """
         v = self.get_variable("urn:micasaverde-com:serviceId:HumiditySensor1",
                               "CurrentLevel")
         return v
 
     def get_setpoint(self):
+        """
+        Get the 'set point' of a thermostat device.  This is the temperature
+        at which the device is configured to turn on heating.
+        """
         v = self.get_variable("urn:upnp-org:serviceId:TemperatureSetpoint1",
                               "CurrentSetpoint")
         return v
 
     def get_heating(self):
+        """
+        Get the operating mode of a heating device.  Valid values are:
+        Off, HeatOn.
+        """
         v = self.get_variable("urn:upnp-org:serviceId:HVAC_UserOperatingMode1",
                               "ModeStatus")
         return v
 
     def get_battery(self):
+        """
+        Get the battery capacity of a battery-powered device.  Is a %
+        value, 0-100.
+        """
         v = self.get_variable("urn:micasaverde-com:serviceId:HaDevice1",
                               "BatteryLevel")
         return v
 
     def set_switch(self, value):
+        """
+        Changes the setting of a switch device.
+
+        :param value: new value, boolean
+        """
         act = SwitchAction(self, value)
         return act.invoke()
 
     def set_dimmer(self, value):
+        """
+        Changes the setting of a dimmer device.
+
+        :param value: new value, 0-100.
+        """
         act = DimmerAction(self, value)
         return act.invoke()
 
     def set_setpoint(self, value):
+        """
+        Changes the set point of a thermostat device.
+
+        :param value: new value, float.
+        """
         act = SetpointAction(self, value)
         return act.invoke()
 
     def set_heating(self, value):
+        """
+        Changes the operating mode of a heating device.
+
+        :param value: new value, string, valid values are: Off HeatOn.
+        """
         act = HeatingAction(self, value)
         return act.invoke()
 
@@ -1057,11 +1130,19 @@ class Device(object):
         return self.__dict__ == obj.__dict__ and type(self) == type(obj)
 
 class Scene(object):
-
+    """
+    Represents a scene, once it is configured into the LUUP engine.
+    """
     def __init__(self):
+        """
+        Creates a Scene object.
+        """
         pass
 
     def delete(self):
+        """
+        Calls the LUUP engine to delete this scene.
+        """
         self.vera.delete_scene(self)
 
     def __str__(self):
@@ -1071,6 +1152,9 @@ class Scene(object):
         return self.__dict__ == obj.__dict__ and type(self) == type(obj)
 
 class Room(object):
+    """
+    Represents a room, configured into the LUUP engine.
+    """
 
     def __init__(self):
         pass
@@ -1082,11 +1166,20 @@ class Room(object):
         return self.__dict__ == obj.__dict__ and type(self) == type(obj)
 
 class Vera(object):
-
+    """
+    Vera represents a connection to a Vera device's LUUP engine.
+    """
     def __init__(self):
+        """
+        Creates a new Vera object.
+        """
         self.update_state()
 
     def update_state(self):
+        """
+        Queries the LUUP engine for user_data state, and updates the local
+        copy.
+        """
         ud = self.get('data_request?id=user_data&output_format=json')
         self.user_data = ud
 
@@ -1154,17 +1247,35 @@ class Vera(object):
             self.scenes[s.id] = s
 
     def get_room_by_id(self, id):
+        """
+        Return a Room object if one exists matching the provided ID.
+        :param id: Room ID, an integer
+        :return: A Room object
+        """
         if self.rooms.has_key(id):
             return self.rooms[id]
         raise RuntimeError, "Room not known"
 
     def get_room(self, name):
+        """
+        Return a Room object if one exists with the provided room name.
+        :param name: Room name.
+        :return: A Room object
+        """
         for i in self.rooms:
             if self.rooms[i].name == name:
                 return self.rooms[i]
         raise RuntimeError, "Room '%s' not known" % name
 
     def get_device(self, name, room=None):
+        """
+        Return a Device object if one exists with the provided device name.
+        Optionally, a room object can be specified to restrict the search for
+        the device to that room.
+        :param name: Device name.
+        :param room: Optional Rooom object.
+        :return: A Device object
+        """
         for i in self.devices:
             if self.devices[i].name == name:
                 if room == None or self.devices[i].room == room:
@@ -1172,13 +1283,21 @@ class Vera(object):
         raise RuntimeError, "Device '%s' not known" % name
 
     def get_device_by_id(self, id):
+        """
+        Return a Device object if one exists matching the provided ID.
+        :param id: Device ID, an integer
+        :return: A Device object
+        """
         for i in self.devices:
             if self.devices[i].id == id:
                 return self.devices[i]
         raise RuntimeError, "Device not found"
 
     def get_devices(self):
-
+        """
+        Return a sequence of devices.
+        :return: A sequence of Device objects.
+        """
         devices = []
         for i in self.devices:
             devices.append(self.devices[i])
@@ -1186,7 +1305,10 @@ class Vera(object):
         return devices
 
     def get_scenes(self):
-
+        """
+        Returns a list of scenes.
+        :return: A sequence of Scene objects.
+        """
         scenes = []
         for i in self.scenes:
             scenes.append(self.scenes[i])
@@ -1194,7 +1316,10 @@ class Vera(object):
         return scenes
 
     def get_rooms(self):
-
+        """
+        Returns a list of rooms.
+        :return: A sequence of Room objects.
+        """
         rooms = []
         for i in self.rooms:
             rooms.append(self.rooms[i])
@@ -1202,36 +1327,71 @@ class Vera(object):
         return rooms
 
     def get(self, path):
+        """
+        Performs an HTTP/S 'GET' for a LUUP resource, which is returned.
+
+        :param path: Relative path for the resource e.g. data_request?id=alive
+        :return: The resource.  If the underlying resource is JSON, this is
+        converted to Python dict.
+        """
         raise RuntimeError("Not implemented")
 
     def get_user_data(self):
+        """
+        Returns the user_data.  Doesn't fetch, this is a local copy.
+        :return: user_data as a Python dict.
+        """
         return self.user_data
   
     def get_sdata(self):
+        """
+        Fetches the sdata from the LUUP engine.
 
+        :return: sdata as a dict.
+        """
         payload = self.get('data_request?id=sdata&output_format=json')
         return payload
 
     def get_file(self, path):
+        """
+        Fetches a file from the Vera device.
+        :param path: filename.
+        :return: file contents
+        """
         file = self.get('data_request?id=file&parameters=%s' % path)
         return file
   
     def get_status(self):
-
+        """
+        Gets Vera status.
+        :return: status value.
+        """
         payload = self.get('data_request?id=status&output_format=json')
         return payload
   
     def get_scene(self, id):
-
+        """
+        Fetches a scene from the LUUP device.  You probably want to use
+        get_scenes, to access Scene objects.
+        :param id: scene ID.
+        :return: scene as Python dict, not a Scene object.
+        """
         payload = self.get('data_request?id=scene&action=list&scene=%s&output_format=json' % id)
         return payload
     
     def delete_scene(self, s):
-
+        """
+        Deletes a Scene from Vera.
+        :param s: A Scene object
+        """
         return self.get('data_request?id=scene&action=delete&scene=%s' % s.id)
   
     def create_scene(self, s):
+        """
+        Creates a Scene object from a SceneDefinition object.
 
+        :param s: SceneDefinition object.
+        """
         s = json.dumps(s.output())
 
         # URL-encoding.  Vera not happy with Python's standard
@@ -1257,13 +1417,28 @@ class Vera(object):
         return self.__dict__ == obj.__dict__ and type(self) == type(obj)
 
 class VeraLocal(Vera):
+    """
+    Represents a connection to a local Vera device.
+    """
 
     def __init__(self, host, port = 3480):
+        """
+        Connects to a local Vera device on the local network.
+        :param host: string containing hostname or IP address.
+        :param port: port number.
+        """
         self.host = host
         self.port = port
         Vera.__init__(self)
 
     def get(self, path):
+        """
+        Performs an HTTP/S 'GET' for a LUUP resource, which is returned.
+
+        :param path: Relative path for the resource e.g. data_request?id=alive
+        :return: The resource.  If the underlying resource is JSON, this is
+        converted to Python dict.
+        """
         base = 'http://%s:%d' % (self.host, self.port)
         url = '%s/%s' % (base, path)
 
@@ -1281,7 +1456,12 @@ class VeraLocal(Vera):
 class VeraRemote(Vera):
 
     def get_session_token(self, server):
-
+        """
+        Get a session token for subsequent operations on a server.  You
+        shouldn't need to call this.
+        :param server: the server.
+        :return: session token string.
+        """
         headers = {"MMSAuth": self.auth_token, "MMSAuthSig": self.auth_sig}
         url = "https://%s/info/session/token" % server
         session_token = self.session.get(url, headers=headers).text
@@ -1289,6 +1469,12 @@ class VeraRemote(Vera):
         return session_token
 
     def __init__(self, user, password, device):
+        """
+        Connects to a remote Vera device through the relay servers.
+        :param user: username.
+        :param password: password.
+        :param device: device ID
+        """
         self.user = user
         self.password = password
         self.device = device
@@ -1342,7 +1528,8 @@ class VeraRemote(Vera):
         # Get server_relay
         headers = { "MMSSession": session_token }
 
-        url = "https://" + server_device + "/device/device/device/" + str(device)
+        url = "https://" + server_device + "/device/device/device/" + \
+              str(device)
 
         relay_info = self.session.get(url, headers=headers).json()
 
@@ -1358,10 +1545,18 @@ class VeraRemote(Vera):
         sys.stderr.write("Connected to remote device.\n")
 
     def get(self, path):
+        """
+        Performs an HTTP/S 'GET' for a LUUP resource, which is returned.
+
+        :param path: Relative path for the resource e.g. data_request?id=alive
+        :return: The resource.  If the underlying resource is JSON, this is
+        converted to Python dict.
+        """
 
         headers = { "MMSSession": self.session_token }
 
-        url = "https://%s/relay/relay/relay/device/%s/port_3480/%s" % (self.relay, str(self.device), path)
+        url = "https://%s/relay/relay/relay/device/%s/port_3480/%s" % \
+              (self.relay, str(self.device), path)
 
         response = requests.get(url, headers=headers)
 
@@ -1373,7 +1568,11 @@ class VeraRemote(Vera):
         return response.text
 
 def connect(config="LUUP-AUTH.json"):
-        
+    """
+    Gets Vera connection information from a file, and connects to a Vera.
+    :param config: filename
+    :return: a Vera object on successful connection.
+    """
     config = json.loads(open(config, "r").read())
 
     if config.has_key("local"):
