@@ -230,7 +230,7 @@ Format is:
 
 ### Configure
 
-Create a file e.g. ```AUTH.json```.  Example forms for local comms to Vera:
+Create a file e.g. ```LUUP-AUTH.json```.  Example forms for local comms to Vera:
 ```
 {
     "local": {
@@ -259,12 +259,22 @@ Parameters to this utility are the configuration file, and the room name.  The
 schedule is read from the standard input.
 
 ```
-./upload_scenes AUTH.json Heating < SCHEDULE.csv
+./upload_scenes LUUP-AUTH.json Heating < SCHEDULE.csv
 ```
 
 If all works, you should see a set of scenes appear in the web interface.
 
 The ```upload_scenes``` utility uses a restricted set of the scene features,
 so may get confused if you start creating your own scenes in the room.
+
+The ```get_scenes``` utility returns the scenes as a CSV file...
+```
+./get_scenes LUUP-AUTH.json Heating
+```
+and the ```delete_scenes``` utility deletes all scenes in a room...
+```
+./delete_scenes LUUP-AUTH.json Heating
+```
+
 
 

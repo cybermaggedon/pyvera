@@ -1,6 +1,0 @@
-{u'name': u'Bunchy', u'triggers': [], u'Timestamp': 1461617307, u'modeStatus': u'0', u'triggers_operator': u'OR', u'timers': [{u'next_run': 1461657600, u'days_of_week': u'1,2,3,4', u'enabled': 1, u'time': u'9:0:0', u'type': 2, u'id': 1}], u'groups': [{u'delay': 0, u'actions': [{u'device': 32, u'action': u'SetCurrentSetpoint', u'arguments': [{u'name': u'NewCurrentSetpoint', u'value': u'20.0'}], u'service': u'urn:upnp-org:serviceId:TemperatureSetpoint1'}]}], u'users': u'', u'id': 212, u'room': u'2'}
-
-
-{u'name': u'Weekday evening off', u'triggers': [], u'Timestamp': 1461617552, u'timers': [{u'next_run': 1461640684, u'days_of_week': u'1,2,3,4,5', u'name': u'schedule', u'enabled': 1, u'time': u'22:30', u'type': u'2', u'id': 1}], u'groups': [{u'delay': 0, u'actions': []}], u'id': 216, u'room': 2}
-
-

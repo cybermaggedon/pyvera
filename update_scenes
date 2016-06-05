@@ -9,9 +9,8 @@ if len(sys.argv) != 3:
     sys.stderr.write("Usage:\n    update_scenes <config> <room>\n")
     sys.exit(1)
 
-config = json.loads(open(sys.argv[1], "r").read())
-
 schedule = []
+
 reader = csv.reader(sys.stdin)
 for row in reader:
 
@@ -26,20 +25,14 @@ for row in reader:
         "value": row[4],
         "times": row[5:]
         })
-
-if config.has_key("local"):
-    ve = vera.VeraLocal(config["local"]["address"])
-else:
-    user = config["remote"]["user"]
-    password = config["remote"]["password"]
-    device = config["remote"]["device"]
-    ve = vera.VeraRemote(user, password, device)
-
+    
+ve = vera.connect(sys.argv[1])
 room = sys.argv[2]
 room = ve.get_room(room)
 
 for i in ve.get_scenes():
-    if i.room == room:
+    if i.room == None: continue
+    if i.room.id == room.id:
         print "Deleting scene %s" % i.name
         ve.delete_scene(i)
 

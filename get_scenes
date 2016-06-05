@@ -9,15 +9,7 @@ if len(sys.argv) != 3:
     sys.stderr.write("Usage:\n    get_schedule <config> <room>\n")
     sys.exit(1)
 
-config = json.loads(open(sys.argv[1], "r").read())
-
-if config.has_key("local"):
-    ve = vera.VeraLocal(config["local"]["address"])
-else:
-    user = config["remote"]["user"]
-    password = config["remote"]["password"]
-    device = config["remote"]["device"]
-    ve = vera.VeraRemote(user, password, device)
+ve = vera.connect(sys.argv[1])
 
 room = ve.get_room(sys.argv[2])
 
