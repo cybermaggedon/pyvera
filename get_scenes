@@ -28,7 +28,6 @@ for s in scenes:
     defn = s.definition
 
     name = defn.name
-    days = defn.timers[0].days
 
     if len(defn.actions) != 1:
         raise RuntimeError, "Can only handle scene on single device"
@@ -47,42 +46,14 @@ for s in scenes:
     if type(defn.actions[0].actions[0]) == vera.SetpointAction:
         tp = "set"
 
-    row = [name, days, device.name, tp, value]
+    row = [name, device.name, tp, value]
 
     times = []
     for t in defn.timers:
-        if t.days != days:
-            raise RuntimeError, "Inconsistent days in scene"
-        
+        row.append(t.days)
         row.append(t.time.output())
 
     output.writerow(row)
 
-sys.exit(0)
-
-if status.has_key("scenes"):
-
-    for i in status["scenes"]:
-
-        scene = vera.get_scene(i["id"])
-
-        print scene
-
-        # These happen for deleted scenes?!  Why are they in the list?
-        if scene == None: continue
-        if not isinstance(scene, dict): continue
-
-        if not scene.has_key("room"): continue
-        if int(scene["room"]) != room_id: continue
-
-#        continue
-
-        name = scene["name"]
-        days = scene["timers"][0]["days_of_week"]
-        time = scene["timers"][0]["time"]
-        device = scene["groups"][0]["actions"][0]["device"]
-        value = scene["groups"][0]["actions"][0]["arguments"][0]["value"]
-
-        output.writerow([name, days, time, device, value])
 
 

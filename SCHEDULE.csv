@@ -1,42 +1,22 @@
 
-Heating water weekday on,"1,2,3,4,5",Hot water,heat,HeatOn,06:30,16:00
-Heating water weekday off,"1,2,3,4,5",Hot water,heat,Off,08:15,18:30
+Heating water on,Hot water,heat,HeatOn,"1,2,3,4,5",06:30,"1,2,3,4,5",16:00,"6,7",06:30,"6,7",16:00
+Heating water off,Hot water,heat,Off,"1,2,3,4,5",08:15,"1,2,3,4,5",18:30,"6,7",08:15,"6,7",18:30
 
-Heating water weekend on,"6,7",Hot water,heat,HeatOn,06:30,16:00
-Heating water weekend off,"6,7",Hot water,heat,Off,08:15,18:30
+Attic on,Attic stat,set,11.0,"1,2,3,4,5",06:30,"1,2,3,4,5",17:30,"6,7",06:30,"6,7",17:30
+Attic off,Attic stat,set,7.0,"1,2,3,4,5",09:00,"1,2,3,4,5",19:30,"6,7",09:00,"6,7",19:30
 
-Attic weekday on,"1,2,3,4,5",Attic stat,set,11.0,06:30,17:30
-Attic weekday off,"1,2,3,4,5",Attic stat,set,7.0,09:00,19:30
+Extension on,Extension stat,set,11.0,"1,2,3,4,5",06:30,"1,2,3,4,5",17:30,"6,7",06:30,"6,7",17:30
+Extension off,Extension stat,set,7.0,"1,2,3,4,5",09:00,"1,2,3,4,5",19:30,"6,7",09:00,"6,7",19:30
 
-Attic weekend on,"6,7",Attic stat,set,11.0,06:30,17:30
-Attic weekend off,"6,7",Attic stat,set,7.0,09:00,19:30
+Upstairs on,Upstairs stat,set,11.0,"1,2,3,4,5",06:30,"1,2,3,4,5",17:30,"6,7",06:30,"6,7",17:30
+Upstairs off,Upstairs stat,set,7.0,"1,2,3,4,5",09:00,"1,2,3,4,5",19:30,"6,7",09:00,"6,7",19:30
 
-Extension weekday on,"1,2,3,4,5",Extension stat,set,11.0,06:30,17:30
-Extension weekday off,"1,2,3,4,5",Extension stat,set,7.0,09:00,19:30
+Ground floor on,Ground floor stat,set,11.0,"1,2,3,4,5",06:30,"1,2,3,4,5",17:30,"6,7",06:30,"6,7",17:30
+Ground floor off,Ground floor stat,set,7.0,"1,2,3,4,5",09:00,"1,2,3,4,5",19:30,"6,7",09:00,"6,7",19:30
 
-Extension weekend on,"6,7",Extension stat,set,11.0,06:30,17:30
-Extension weekend off,"6,7",Extension stat,set,7.0,09:00,19:30
+Bathroom on,Bathroom stat,set,11.0,"1,2,3,4,5",06:30,"1,2,3,4,5",17:30,"6,7",06:30,"6,7",17:30
+Bathroom off,Bathroom stat,set,7.0,"1,2,3,4,5",09:00,"1,2,3,4,5",19:30,"6,7",09:00,"6,7",19:30
 
-Upstairs weekday on,"1,2,3,4,5",Upstairs stat,set,11.0,06:30,17:30
-Upstairs weekday off,"1,2,3,4,5",Upstairs stat,set,7.0,09:00,19:30
+Coach house on,Coach house stat,set,11.0,"1,2,3,4,5",06:30,"1,2,3,4,5",17:30,"6,7",06:30,"6,7",17:30
+Coach house off,Coach house stat,set,7.0,"1,2,3,4,5",09:00,"1,2,3,4,5",19:30,"6,7",09:00,"6,7",19:30
 
-Upstairs weekend on,"6,7",Upstairs stat,set,11.0,06:30,17:30
-Upstairs weekend off,"6,7",Upstairs stat,set,7.0,09:00,19:30
-
-Ground floor weekday on,"1,2,3,4,5",Ground floor stat,set,11.0,06:30,17:30
-Ground floor weekday off,"1,2,3,4,5",Ground floor stat,set,7.0,09:00,19:30
-
-Ground floor weekend on,"6,7",Ground floor stat,set,11.0,06:30,17:30
-Ground floor weekend off,"6,7",Ground floor stat,set,7.0,09:00,19:30
-
-Bathroom weekday on,"1,2,3,4,5",Bathroom stat,set,11.0,06:30,17:30
-Bathroom weekday off,"1,2,3,4,5",Bathroom stat,set,7.0,09:00,19:30
-
-Bathroom weekend on,"6,7",Bathroom stat,set,11.0,06:30,17:30
-Bathroom weekend off,"6,7",Bathroom stat,set,7.0,09:00,19:30
-
-Coach house weekday on,"1,2,3,4,5",Coach house stat,set,11.0,06:30,17:30
-Coach house weekday off,"1,2,3,4,5",Coach house stat,set,7.0,09:00,19:30
-
-Coach house weekend on,"6,7",Coach house stat,set,11.0,06:30,17:30
-Coach house weekend off,"6,7",Coach house stat,set,7.0,09:00,19:30

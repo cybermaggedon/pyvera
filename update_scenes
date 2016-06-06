@@ -17,15 +17,18 @@ for row in reader:
     # Ignore empty lines
     if len(row) == 0: continue
 
+    times = []
+    for v in range(4, len(row), 2):
+        times.append( (row[v], row[v+1] ) )
+
     schedule.append({
         "name": row[0],
-        "days": row[1],
-        "device": row[2],
-        "action": row[3],
-        "value": row[4],
-        "times": row[5:]
+        "device": row[1],
+        "action": row[2],
+        "value": row[3],
+        "times": times
         })
-    
+
 ve = vera.connect(sys.argv[1])
 room = sys.argv[2]
 room = ve.get_room(room)
@@ -55,10 +58,13 @@ for s in schedule:
 
     for i in s["times"]:
 
-        hours = int(i.split(":")[0])
-        minutes = int(i.split(":")[1])
+        d = i[0]
+        t = i[1].split(":")
+        
+        hours = int(t[0])
+        minutes = int(t[1])
         time = vera.Time(hours, minutes)
-        timer = vera.DayOfWeekTimer(1, "time", s["days"], time)
+        timer = vera.DayOfWeekTimer(1, "time", d, time)
         timers.append(timer)
 
     # All modes except vacation

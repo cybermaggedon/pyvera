@@ -1163,7 +1163,8 @@ class Room(object):
         return str(self.__dict__)
 
     def __eq__(self, obj):
-        return self.__dict__ == obj.__dict__ and type(self) == type(obj)
+        if type(self) != type(obj): return False
+        return self.__dict__ == obj.__dict__
 
 class Vera(object):
     """

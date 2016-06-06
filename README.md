@@ -214,19 +214,25 @@ See ```SCHEDULE.csv``` for a example format.
 
 Format is:
 1. Scene name
-2. Comma-separated list of days for this scene to operate 1=Monday etc.  Don't
-   forget to quote the field, because commas are a separator.
-3. Device to manage.
-4. Type of action to take:
+2. Device to manage.
+3. Type of action to take:
 --* ```heat``` to manage a heating controller.
 --* ```set``` to manage a thermostat.
 --* ```switch``` to operate a simple switch.
-5. Value to apply to the device:
+4. Value to apply to the device:
 --* For ```heat``` use values ```HeatOn``` and ```Off```.
 --* For ```set``` using a floating point temperature value.
 --* For ```switch``` Use ```On``` and ```Off```.
-6. Following fields are times to activate the scene.  Multiple times can be
-   specified e.g. to fire the scene at different times of the day.
+5. The rest of the fields are pairs of days in week, and times.
+   The days of week are a comma-separated list of digits representing
+   days 1=Monday etc.  Times are colon-separated 24-hour times.
+
+e.g.
+
+```
+Ground floor on,Ground floor stat,set,11.0,"1,2,3,4,5",06:30,"1,2,3,4,5",17:30,"6,7",09:30
+```
+
 
 ### Configure
 
