@@ -1397,6 +1397,20 @@ class Vera(object):
 
         # URL-encoding.  Vera not happy with Python's standard
         # URL-encoding.
+        s = Vera.urlencode(s)
+        
+        payload = self.get('data_request?id=scene&action=create&json=%s' % s)
+        return payload
+
+    def __str__(self):
+        return str(self.__dict__)
+
+    def __eq__(self, obj):
+        return self.__dict__ == obj.__dict__ and type(self) == type(obj)
+
+    def urlencode(s):
+        # URL-encoding.  Vera not happy with Python's standard
+        # URL-encoding.
         s = s.replace("%", "%25")
         s = s.replace(":", "%3a")
         s = s.replace("+", "%2b")
@@ -1407,15 +1421,29 @@ class Vera(object):
         s = s.replace('"', "%22")
         s = s.replace("?", "%3f")
         s = s.replace(" ", "%20")
+        s = s.replace("/", "%2f")
+        return s
+
+    urlencode = staticmethod(urlencode)
         
-        payload = self.get('data_request?id=scene&action=create&json=%s' % s)
-        return payload
+    def get_weather(self):
+        """
+        Gets the weather status for the current location.
+        :returns: a tuple of two items, first item is a floating point
+        local temperature, second is a human-readable outlook.
+        """
 
-    def __str__(self):
-        return str(self.__dict__)
+        city = self.user_data["weatherSettings"]["weatherCity"]
+        country = self.user_data["weatherSettings"]["weatherCountry"]
 
-    def __eq__(self, obj):
-        return self.__dict__ == obj.__dict__ and type(self) == type(obj)
+        host = "weather.mios.com"
+        temp_scale = "C"
+        url = "http://%s/?tempFormat=%s&cityWeather=%s&countryWeather=%s" % \
+              (host, temp_scale, Vera.urlencode(city), Vera.urlencode(country))
+
+        weather = self.proxy_get(url)
+
+        return (float(weather["temp"]), weather["text"])
 
 class VeraLocal(Vera):
     """
@@ -1453,6 +1481,22 @@ class VeraLocal(Vera):
         conn.close()
 
         return payload
+
+    def proxy_get(self, url):
+
+        url = Vera.urlencode(url)
+
+        url = "http://%s/cgi-bin/cmh/proxy.sh?url=%s" % \
+              (self.host, url)
+
+        response = requests.get(url)
+
+        try: 
+            return response.json()
+        except:
+            pass
+
+        return response.text
 
 class VeraRemote(Vera):
 
@@ -1567,6 +1611,25 @@ class VeraRemote(Vera):
             pass
 
         return response.text
+
+    def proxy_get(self, url):
+
+        url = Vera.urlencode(url)
+
+        headers = { "MMSSession": self.session_token }
+
+        url = "https://%s/relay/relay/proxy?url=%s" % (self.relay, url)
+
+        response = requests.get(url, headers=headers)
+
+        try: 
+            return response.json()
+        except:
+            pass
+
+        return response.text
+
+#http://control/cgi-bin/cmh/proxy.sh?url=http%3A%2F%2Fweather.mios.com%2F%3FtempFormat%3DC%26cityWeather%3DCheltenham%2520England%26countryWeather%3DUnited%2520Kingdom
 
 def connect(config="LUUP-AUTH.json"):
     """
