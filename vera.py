@@ -1022,8 +1022,12 @@ class Device(object):
         Get the current state of a power switch device.  Returns a boolean
         value.
         """
-        status = self.get_variable("urn:upnp-org:serviceId:SwitchPower1",
-                                   "Status")
+
+        svc = "urn:upnp-org:serviceId:SwitchPower1"
+        if not svc in self.services:
+            raise RuntimeError, "Device doesn't support the service"
+        
+        status = self.get_variable(svc, "Status")
         return status == 1
 
     def get_dimmer(self):
@@ -1031,9 +1035,12 @@ class Device(object):
         Get the current state of a dimmer device.  Returns an integer in
         the range 0-100.
         """
-        v = self.get_variable("urn:upnp-org:serviceId:Dimming1",
-                              "LoadLevelStatus")
-        return v
+
+        svc = "urn:upnp-org:serviceId:Dimming1"
+        if not svc in self.services:
+            raise RuntimeError, "Device doesn't support the service"
+
+        return self.get_variable(svc, "LoadLevelStatus")
 
     def get_temperature(self):
         """
@@ -1042,44 +1049,58 @@ class Device(object):
         device configuration.
         """
 
-        return self.get_variable("urn:upnp-org:serviceId:TemperatureSensor1",
-                                 "CurrentTemperature")
+        svc = "urn:upnp-org:serviceId:TemperatureSensor1"
+        if not svc in self.services:
+            raise RuntimeError, "Device doesn't support the service"
+
+        return self.get_variable(svc, "CurrentTemperature")
 
     def get_humidity(self):
         """
         Get the current value of a humidity sensor device.  Returns a
         integer value representing % relative humidity.
         """
-        v = self.get_variable("urn:micasaverde-com:serviceId:HumiditySensor1",
-                              "CurrentLevel")
-        return v
+
+        svc = "urn:micasaverde-com:serviceId:HumiditySensor1"
+        if not svc in self.services:
+            raise RuntimeError, "Device doesn't support the service"
+
+        return self.get_variable(svc, "CurrentLevel")
 
     def get_setpoint(self):
         """
         Get the 'set point' of a thermostat device.  This is the temperature
         at which the device is configured to turn on heating.
         """
-        v = self.get_variable("urn:upnp-org:serviceId:TemperatureSetpoint1",
-                              "CurrentSetpoint")
-        return v
+        svc = "urn:upnp-org:serviceId:TemperatureSetpoint1"
+        if not svc in self.services:
+            raise RuntimeError, "Device doesn't support the service"
+
+        return self.get_variable(svc, "CurrentSetpoint")
 
     def get_heating(self):
         """
         Get the operating mode of a heating device.  Valid values are:
         Off, HeatOn.
         """
-        v = self.get_variable("urn:upnp-org:serviceId:HVAC_UserOperatingMode1",
-                              "ModeStatus")
-        return v
+
+        svc = "urn:upnp-org:serviceId:HVAC_UserOperatingMode1"
+        if not svc in self.services:
+            raise RuntimeError, "Device doesn't support the service"
+        
+        return self.get_variable(svc, "ModeStatus")
 
     def get_battery(self):
         """
         Get the battery capacity of a battery-powered device.  Is a %
         value, 0-100.
         """
-        v = self.get_variable("urn:micasaverde-com:serviceId:HaDevice1",
-                              "BatteryLevel")
-        return v
+
+        svc = "urn:micasaverde-com:serviceId:HaDevice1"
+        if not svc in self.services:
+            raise RuntimeError, "Device doesn't support the service"
+
+        return self.get_variable(svc, "BatteryLevel")
 
     def set_switch(self, value):
         """
@@ -1209,6 +1230,10 @@ class Vera(object):
                 d.model = i["model"]
             else:
                 d.model = None
+
+            d.services = set()
+            for st in i["states"]:
+                d.services.add(st["service"])
 
             d.device_type = i["device_type"]
 
