@@ -502,16 +502,58 @@ class Trigger(Timer):
     def __eq__(self, obj):
         return self.__dict__ == obj.__dict__ and type(self) == type(obj)
 
+class Job(object):
+    """
+    Represents a job, typically used to implement an action.
+    """
+    def __init__(self):
+        """
+        Creates a Job object.
+        """
+        pass
+
+    def get_status(self):
+        """
+        Gets the job status, returns a tuple.  First element is job code,
+        second element is human-readable meaning of the job code.
+        """
+        url = "data_request?id=jobstatus&job=%d&plugin=zwave" % self.id
+        return self.vera.get(url)
+
+    def is_complete(self):
+        """
+        Tests whether the job has completed.
+        :return: True if the job is complete, False otherwise.
+        """
+        status = self.get_status()
+        return status["status"] == 4
+    
+    def is_pending(self):
+        """
+        Tests whether the job is stilling pending completion.
+        :return: True if the job is still pending completion, False otherwise.
+        """
+        status = self.get_status()
+        return status["status"] == 3
+    
+    def __str__(self):
+        return str(self.__dict__)
+
+    def __eq__(self, obj):
+        if type(self) != type(obj): return False
+        return self.__dict__ == obj.__dict__
+
 class Action(object):
     """
     Base class describing an action.
     """
 
-    def invoke(vera, s):
+    def invoke(self):
         """
         Invoke an action
+        :return: a Job object, describing the job implementing the action.
         """
-        pass
+        raise RuntimeError, "Not implemented"
 
     def parse(vera, s):
         """
@@ -581,14 +623,19 @@ class SetpointAction(Action):
     def invoke(self):
         """
         Immediately invoke the action
+        :return: a Job object, describing the job implementing the action.
         """
         base="data_request?id=action"
         action = "SetCurrentSetpoint"
         svc = "urn:upnp-org:serviceId:TemperatureSetpoint1"
-        path = "%s&DeviceNum=%d&serviceId=%s&action=%s&NewCurrentSetpoint=%f" \
+        path = "%s&DeviceNum=%d&serviceId=%s&action=%s&NewCurrentSetpoint=%f&output_format=json" \
                % (base, self.device.id, svc, action, self.value)
         status = self.device.vera.get(path)
-        return status
+
+        job = Job()
+        job.id = int(status["u:SetCurrentSetpointResponse"]["JobID"])
+        job.vera = self.device.vera
+        return job
     
     def parse(vera, s):
         """
@@ -625,7 +672,7 @@ class SwitchAction(Action):
         """
         return {
             "device": self.device.id, 
-            "action": "SetTarget", 
+            "action": "SetTarget",
             "arguments": [
                 {
                     "name": "newTargetValue", 
@@ -638,6 +685,7 @@ class SwitchAction(Action):
     def invoke(self):
         """
         Implements the defined action.
+        :return: a Job object, describing the job implementing the action.
         """
 
         if self.value:
@@ -648,10 +696,14 @@ class SwitchAction(Action):
         base="data_request?id=action"
         action = "SetTarget"
         svc = "urn:upnp-org:serviceId:SwitchPower1"
-        path = "%s&DeviceNum=%d&serviceId=%s&action=%s&newTargetValue=%d" \
+        path = "%s&DeviceNum=%d&serviceId=%s&action=%s&newTargetValue=%d&output_format=json" \
                % (base, self.device.id, svc, action, value)
         status = self.device.vera.get(path)
-        return status
+
+        job = Job()
+        job.id = int(status["u:SetTargetResponse"]["JobID"])
+        job.vera = self.device.vera
+        return job
 
     def parse(vera, s):
         """
@@ -700,15 +752,20 @@ class DimmerAction(Action):
     def invoke(self):
         """
         Invokes the action, affecting the specified device.
+        :return: a Job object, describing the job implementing the action.
         """
 
         base="data_request?id=action"
         action = "SetLoadLevelTarget"
         svc = "urn:upnp-org:serviceId:Dimming1"
-        path = "%s&DeviceNum=%d&serviceId=%s&action=%s&newTargetValue=%d" \
+        path = "%s&DeviceNum=%d&serviceId=%s&action=%s&newTargetValue=%d&output_format=json" \
                % (base, self.device.id, svc, action, self.value)
         status = self.device.vera.get(path)
-        return status
+
+        job = Job()
+        job.id = int(status["u:SetLoadLevelTargetResponse"]["JobID"])
+        job.vera = self.device.vera
+        return job
 
     def parse(vera, s):
         """
@@ -757,15 +814,20 @@ class HeatingAction(Action):
     def invoke(self):
         """
         Invokes the action, affecting the specified device.
+        :return: a Job object, describing the job implementing the action.
         """
 
         base="data_request?id=action"
         action = "SetModeTarget"
         svc = "urn:upnp-org:serviceId:HVAC_UserOperatingMode1"
-        path = "%s&DeviceNum=%d&serviceId=%s&action=%s&NewModeTarget=%s" \
+        path = "%s&DeviceNum=%d&serviceId=%s&action=%s&NewModeTarget=%s&output_format=json" \
                % (base, self.device.id, svc, action, self.value)
         status = self.device.vera.get(path)
-        return status
+
+        job = Job()
+        job.id = int(status["u:SetModeTargetResponse"]["JobID"])
+        job.vera = self.device.vera
+        return job
 
     def parse(vera, s):
         """
@@ -1469,6 +1531,92 @@ class Vera(object):
         weather = self.proxy_get(url)
 
         return (float(weather["temp"]), weather["text"])
+
+    def all_switches(self, value):
+        """
+        Implement a state change to all switches.
+        :param value: The value to apply to all switches, a boolean.
+        :return: a Job object, describing the job implementing the action.
+        """
+
+        if value:
+            value = 1
+        else:
+            value = 0
+
+        base="data_request?id=action"
+        action = "SetTarget"
+        svc = "urn:upnp-org:serviceId:SwitchPower1"
+        path = "%s&Category=%d&serviceId=%s&action=%s&newTargetValue=%d&output_format=json" \
+               % (base, 3, svc, action, value)
+        status = self.get(path)
+
+        job = Job()
+        job.id = int(status["u:SetTargetResponse"]["JobID"])
+        job.vera = self
+        return job
+
+    def all_dimmers(self, value):
+        """
+        Implement a state change to all dimmer devices.
+        :param value: The value to apply to all devices, an integer 0-100.
+        :return: a Job object, describing the job implementing the action.
+        """
+
+        base="data_request?id=action"
+        action = "SetLoadLevelTarget"
+        svc = "urn:upnp-org:serviceId:Dimming1"
+        path = "%s&Category=%d&serviceId=%s&action=%s&newTargetValue=%d&output_format=json" \
+               % (base, 2, svc, action, value)
+        status = self.get(path)
+
+        job = Job()
+        job.id = int(status["u:SetTargetResponse"]["JobID"])
+        job.vera = self
+        return job
+
+    def all_lights(self, value):
+        """
+        Implement a state change to all light devices.
+        :param value: The value to apply to all switches, a value 0-100.
+        :return: a Job object, describing the job implementing the action.
+        """
+
+        if value:
+            value = 1
+        else:
+            value = 0
+
+        base="data_request?id=action"
+        action = "SetTarget"
+        svc = "urn:upnp-org:serviceId:SwitchPower1"
+        path = "%s&Category=%d&serviceId=%s&action=%s&newTargetValue=%d&output_format=json" \
+               % (base, 999, svc, action, value)
+        status = self.get(path)
+
+        job = Job()
+        job.id = int(status["u:SetTargetResponse"]["JobID"])
+        job.vera = self
+        return job
+
+    def all_heating(self, value):
+        """
+        Implement a state change to all heating devices.
+        :param value: The value to apply to all switches, a string.
+        :return: a Job object, describing the job implementing the action.
+        """
+
+        base="data_request?id=action"
+        action = "SetModeTarget"
+        svc = "urn:upnp-org:serviceId:HVAC_UserOperatingMode1"
+        path = "%s&Category=%d&serviceId=%s&action=%s&NewModeTarget=%s&output_format=json" \
+               % (base, 5, svc, action, value)
+        status = self.get(path)
+
+        job = Job()
+        job.id = int(status["u:SetModeTargetResponse"]["JobID"])
+        job.vera = self
+        return job
 
 class VeraLocal(Vera):
     """
