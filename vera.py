@@ -475,7 +475,8 @@ class Trigger(Timer):
         
         if s.has_key("arguments"):
             for i in s["arguments"]:
-                t.args.append(i["value"])
+                if 'value' in i:
+                    t.args.append(i["value"])
 
         if s.has_key("device"):
             t.device = vera.get_device_by_id(s["device"])
@@ -1325,7 +1326,7 @@ class Vera(object):
             s.vera = self
             s.id = i["id"]
             s.name = i["name"]
-            if self.rooms.has_key(int(i["room"])):
+            if 'room' in i and self.rooms.has_key(int(i["room"])):
                 s.room = self.rooms[int(i["room"])]
             else:
                 s.room = None
