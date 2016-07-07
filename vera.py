@@ -1340,6 +1340,8 @@ class Vera(object):
         :param id: Room ID, an integer
         :return: A Room object
         """
+        if not isinstance(id, int):
+            id = int(id)
         if self.rooms.has_key(id):
             return self.rooms[id]
         raise RuntimeError, "Room not known"
@@ -1376,6 +1378,8 @@ class Vera(object):
         :param id: Device ID, an integer
         :return: A Device object
         """
+        if not isinstance(id, int):
+            id = int(id)
         for i in self.devices:
             if self.devices[i].id == id:
                 return self.devices[i]
