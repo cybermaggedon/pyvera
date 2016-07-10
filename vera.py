@@ -1654,7 +1654,7 @@ class VeraLocal(Vera):
         try: 
             payload = json.loads(payload)
         except:
-            payload = None
+            pass
 
         conn.close()
 
