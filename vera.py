@@ -475,7 +475,8 @@ class Trigger(Timer):
         
         if s.has_key("arguments"):
             for i in s["arguments"]:
-                t.args.append(i["value"])
+                if 'value' in i:
+                    t.args.append(i["value"])
 
         if s.has_key("device"):
             t.device = vera.get_device_by_id(s["device"])
@@ -1325,7 +1326,7 @@ class Vera(object):
             s.vera = self
             s.id = i["id"]
             s.name = i["name"]
-            if self.rooms.has_key(int(i["room"])):
+            if 'room' in i and self.rooms.has_key(int(i["room"])):
                 s.room = self.rooms[int(i["room"])]
             else:
                 s.room = None
@@ -1340,6 +1341,8 @@ class Vera(object):
         :param id: Room ID, an integer
         :return: A Room object
         """
+        if not isinstance(id, int):
+            id = int(id)
         if self.rooms.has_key(id):
             return self.rooms[id]
         raise RuntimeError, "Room not known"
@@ -1376,6 +1379,8 @@ class Vera(object):
         :param id: Device ID, an integer
         :return: A Device object
         """
+        if not isinstance(id, int):
+            id = int(id)
         for i in self.devices:
             if self.devices[i].id == id:
                 return self.devices[i]
@@ -1649,7 +1654,7 @@ class VeraLocal(Vera):
         try: 
             payload = json.loads(payload)
         except:
-            payload = None
+            pass
 
         conn.close()
 
