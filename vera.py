@@ -1469,7 +1469,9 @@ class Vera(object):
         :param id: scene ID.
         :return: scene as Python dict, not a Scene object.
         """
-        payload = self.get('data_request?id=scene&action=list&scene=%s&output_format=json' % id)
+        if not isinstance(id, int):
+            id = int(id)
+        payload = self.get('data_request?id=scene&action=list&scene=%d&output_format=json' % id)
         return payload
     
     def delete_scene(self, s):
