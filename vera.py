@@ -1272,7 +1272,7 @@ class Vera(object):
         for i in self.user_data["rooms"]:
             s = Room()
             s.vera = self
-            s.id = i["id"]
+            s.id = int(i["id"])
             s.name = i["name"]
             self.rooms[s.id] = s
 
@@ -1281,7 +1281,7 @@ class Vera(object):
 
             d = Device()
             d.vera = self
-            d.id = i["id"]
+            d.id = int(i["id"])
             d.name = i["name"]
 
             if i.has_key("manufacturer"):
@@ -1324,7 +1324,7 @@ class Vera(object):
             s = Scene()
             
             s.vera = self
-            s.id = i["id"]
+            s.id = int(i["id"])
             s.name = i["name"]
             if 'room' in i and self.rooms.has_key(int(i["room"])):
                 s.room = self.rooms[int(i["room"])]
