@@ -576,6 +576,9 @@ class Action(object):
         if s["service"] == "urn:upnp-org:serviceId:HVAC_UserOperatingMode1":
             return HeatingAction.parse(vera, s)
 
+        if s["service"] == "urn:upnp-org:serviceId:RGBController1":
+            return RGBAction.parse(vera, s)
+
         raise RuntimeError, "Don't know how to handle service %s" % \
             s["service"]
 
@@ -843,6 +846,66 @@ class HeatingAction(Action):
 
     parse = staticmethod(parse)
 
+class RGBAction(Action):
+    """
+    Action which operates against a colour controller which has 5 channels
+    """
+
+    def __init__(self, device=None, value=None):
+        """
+        Creates a RGAction object.
+        :param device: Device object describing the device to apply
+        :param value: value for color
+        """
+        self.device = device
+        self.value = value
+
+    def output(self):
+        """
+        Formats the value in a format suitable for LUUP comms.
+        """
+        return {
+            "device": self.device.id, 
+            "action": "SetColor",
+            "arguments": [
+                {
+                    "name": "newColorTargetValue", 
+                    "value": self.value
+                }
+            ], 
+            "service": "urn:upnp-org:serviceId:RGBController1"
+        }
+
+    def invoke(self):
+        """
+        Implements the defined action.
+        :return: a Job object, describing the job implementing the action.
+        """
+
+        base="data_request?id=action"
+        action = "SetColorTarget"
+        svc = "urn:upnp-org:serviceId:RGBController1"
+        path = "%s&DeviceNum=%d&serviceId=%s&action=%s&newColorTargetValue=%s&transitionDuration=0&transitionNbSteps=10&output_format=json" \
+               % (base, self.device.id, svc, action, self.value)
+        status = self.device.vera.get(path)
+        job = Job()
+        job.id = int(status["u:SetColorTargetResponse"]["JobID"])
+        job.vera = self.device.vera
+        return job
+
+    def parse(vera, s):
+        """
+        Converts LUUP SetTarget values to a RGBAction object.
+
+        :param s: Value from LUUP comms.
+        """
+        sa = RGBAction()
+        sa.device = vera.get_device_by_id(s["device"])
+        sa.value = s["arguments"][0]["value"]
+        return sa
+
+    parse = staticmethod(parse)
+
 class Group(object):
     """
     A list of Action objects plus a delay time for when the actions are applied,
@@ -1093,6 +1156,18 @@ class Device(object):
         status = self.get_variable(svc, "Status")
         return status == 1
 
+    def get_rgb(self):
+        """
+        Get the current state of an RGB device.  Returns a string.
+        """
+
+        svc = "urn:upnp-org:serviceId:RGBController1"
+        if not svc in self.services:
+            raise RuntimeError, "Device doesn't support the service"
+
+        # Strip off hash.
+        return self.get_variable(svc, "Color")[1:]
+
     def get_dimmer(self):
         """
         Get the current state of a dimmer device.  Returns an integer in
@@ -1172,6 +1247,15 @@ class Device(object):
         :param value: new value, boolean
         """
         act = SwitchAction(self, value)
+        return act.invoke()
+
+    def set_rgb(self, value):
+        """
+        Changes the setting of an RGB device.
+
+        :param value: new value, string in form #aabbccddee
+        """
+        act = RGBAction(self, value)
         return act.invoke()
 
     def set_dimmer(self, value):

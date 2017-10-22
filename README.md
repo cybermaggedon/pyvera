@@ -91,6 +91,19 @@ print "%s dimmer set to: %d" % (dev.name, dev.get_dimmer())
 dev.set_dimmer(75)
 ```
 
+For RGB controllers:
+
+```
+# Get device by name
+dev = ve.get_device("Conservatory RGB")
+
+# Report status
+print "%s set to: %d" % (dev.name, dev.get_rgb())
+
+# Set dimmer
+dev.set_dimmer("E35F3D0000")
+```
+
 Thermostat example:
 ```
 # Get the room
