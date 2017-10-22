@@ -144,6 +144,19 @@ for i in scenes:
     print "  %s: %s" % (i.id, i.name)
 ```
 
+### Run scene
+
+```
+# Get room
+room = ve.get_room("Heating")
+
+# Iterate, deleting all Heating scenes.
+scenes = ve.get_scenes()
+for i in scenes:
+    if i.name == "Hot water":
+        i.run()
+```
+
 ### Delete scenes
 
 ```

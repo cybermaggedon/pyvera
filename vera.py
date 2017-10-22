@@ -906,6 +906,66 @@ class RGBAction(Action):
 
     parse = staticmethod(parse)
 
+class SceneAction(Action):
+    """
+    Action which runs a scene
+    """
+
+    def __init__(self, vera=None, id=None):
+        """
+        Creates a RGAction object.
+        :param device: Device object describing the device to apply
+        :param value: value for color
+        """
+        self.vera = vera
+        self.id = id
+
+    def output(self):
+        """
+        Formats the value in a format suitable for LUUP comms.
+        """
+        return {
+            "action": "RunScene",
+            "arguments": [
+                {
+                    "name": "SceneNum", 
+                    "value": self.id
+                }
+            ], 
+            "service": "urn:micasaverde-com:serviceId:HomeAutomationGateway1"
+        }
+
+    def invoke(self):
+        """
+        Implements the defined action.
+        :return: a Job object, describing the job implementing the action.
+        """
+
+        base="data_request?id=action"
+        action = "RunScene"
+        svc = "urn:micasaverde-com:serviceId:HomeAutomationGateway1"
+        path = "%s&serviceId=%s&action=%s&SceneNum=%d&output_format=json" \
+               % (base, svc, action, self.id)
+        status = self.vera.get(path)
+
+        if status["u:RunSceneResponse"]["OK"] != "OK":
+            return False
+
+        return True
+
+    def parse(vera, s):
+        """
+        Converts LUUP SetTarget values to a RGBAction object.
+
+        :param s: Value from LUUP comms.
+        """
+        sa = RGBAction()
+        sa.vera = vera
+        sa.value = s["arguments"][0]["value"]
+        return sa
+
+    parse = staticmethod(parse)
+
 class Group(object):
     """
     A list of Action objects plus a delay time for when the actions are applied,
@@ -1319,6 +1379,9 @@ class Scene(object):
     def __eq__(self, obj):
         return self.__dict__ == obj.__dict__ and type(self) == type(obj)
 
+    def run(self):
+        self.vera.run_scene(self.id)
+        
 class Room(object):
     """
     Represents a room, configured into the LUUP engine.
@@ -1557,7 +1620,7 @@ class Vera(object):
             id = int(id)
         payload = self.get('data_request?id=scene&action=list&scene=%d&output_format=json' % id)
         return payload
-    
+
     def delete_scene(self, s):
         """
         Deletes a Scene from Vera.
@@ -1579,6 +1642,15 @@ class Vera(object):
         
         payload = self.get('data_request?id=scene&action=create&json=%s' % s)
         return payload
+
+    def run_scene(self, id):
+        """
+        Run a scene by ID.
+
+        :param id: Scene number.
+        """
+        act = SceneAction(self, id)
+        return act.invoke()
 
     def __str__(self):
         return str(self.__dict__)
