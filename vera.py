@@ -1264,6 +1264,18 @@ class Device(object):
             raise RuntimeError, "Device doesn't support the service"
 
         return self.get_variable(svc, "CurrentLevel")
+     
+    def get_lux(self):
+        """
+        Get the current value of a light sensor device.  Returns a
+        integer value representing % of lighting.
+        """
+
+        svc = "urn:micasaverde-com:serviceId:LightSensor1"
+        if not svc in self.services:
+            raise RuntimeError, "Device doesn't support the service"
+
+        return self.get_variable(svc, "CurrentLevel")
 
     def get_setpoint(self):
         """
