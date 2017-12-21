@@ -1276,6 +1276,30 @@ class Device(object):
             raise RuntimeError, "Device doesn't support the service"
 
         return self.get_variable(svc, "CurrentLevel")
+      
+    def get_kwh(self):
+        """
+        Get the current value of the energy meter in kwh.  Returns a
+        integer value with current kilowatts being used.
+        """
+
+        svc = "urn:micasaverde-com:serviceId:EnergyMetering1"
+        if not svc in self.services:
+            raise RuntimeError, "Device doesn't support the service"
+
+        return self.get_variable(svc, "KWH")
+
+    def get_watt(self):
+        """
+        Get the current value of the energy meter in watts.  Returns a
+        integer value with current wattage being used.
+        """
+
+        svc = "urn:micasaverde-com:serviceId:EnergyMetering1"
+        if not svc in self.services:
+            raise RuntimeError, "Device doesn't support the service"
+
+        return self.get_variable(svc, "Watts")
 
     def get_setpoint(self):
         """
