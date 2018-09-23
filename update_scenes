@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import sys
 import vera
@@ -35,7 +35,7 @@ room = ve.get_room(room)
 for i in ve.get_scenes():
     if i.room == None: continue
     if i.room.id == room.id:
-        print "Deleting scene %s" % i.name
+        print("Deleting scene %s" % i.name)
         ve.delete_scene(i)
 
 for s in schedule:
@@ -49,7 +49,7 @@ for s in schedule:
     elif s["action"] == "heat":
         action = vera.HeatingAction(device, s["value"])
     else:
-        raise RuntimeError, "Don't know about action '%s'" % s["action"]
+        raise RuntimeError("Don't know about action '%s'" % s["action"])
 
     actions = vera.Group(0, [action])
 
@@ -71,7 +71,7 @@ for s in schedule:
 
     sd = vera.SceneDefinition(s["name"], [], m, timers, [actions], room)
 
-    print "Adding scene %s..." % s["name"]
+    print("Adding scene %s..." % s["name"])
 
     ve.create_scene(sd)
 

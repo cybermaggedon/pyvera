@@ -33,11 +33,10 @@ Server relay: vera-us-oem-relay41.mios.com
 Connected to remote device.
 """
 
-import urllib, urllib2, json
+import json
 import sys
-import sha
+import hashlib
 import base64
-import httplib
 import time
 import requests
 
@@ -131,7 +130,7 @@ class Timer(object):
         if s["type"] == 4:
             return AbsoluteTimer.parse(s)
 
-        raise RuntimeError, "Parsing timer not implemented."
+        raise RuntimeError("Parsing timer not implemented.")
 
     parse = staticmethod(parse)
 
@@ -186,7 +185,7 @@ class DayOfWeekTimer(Timer):
         t.id = s.get("id", None)
         t.name = s.get("name", None)
         t.days = s.get("days_of_week", None)
-        if s.has_key("time"):
+        if "time" in s:
             t.time = Time.parse(s["time"])
         else:
             t.time = None
@@ -239,7 +238,7 @@ class DayOfMonthTimer(Timer):
         t.id = s.get("id", None)
         t.name = s.get("name", None)
         t.days = s.get("days_of_month", None)
-        if s.has_key("time"):
+        if "time" in s:
             t.time = Time.parse(s["time"])
         else:
             t.time = None
@@ -312,7 +311,7 @@ class IntervalTimer(Timer):
         t = IntervalTimer()
         t.id = s.get("id", None)
         t.name = s.get("name", None)
-        if s.has_key("interval"):
+        if "interval" in s:
             ival = s["interval"]
             if ival[-1:] == "s":
                 t.seconds = int(ival[:-1])
@@ -374,20 +373,20 @@ class AbsoluteTimer(Timer):
         t.id = s.get("id", None)
         t.name = s.get("name", None)
         
-        if s.has_key("abstime"):
+        if "abstime" in s:
 
             parts = s["abstime"].split(" ")
 
             if len(parts) != 2:
-                raise RuntimeError, "Invalid date format"
+                raise RuntimeError("Invalid date format")
 
             dateparts = parts[0].split("-")
             timeparts = parts[1].split(":")
             
             if len(dateparts) != 3:
-                raise RuntimeError, "Invalid date format"
+                raise RuntimeError("Invalid date format")
             if len(timeparts) != 3:
-                raise RuntimeError, "Invalid date format"
+                raise RuntimeError("Invalid date format")
 
             t.year = int(dateparts[0])
             t.month = int(dateparts[1])
@@ -473,22 +472,22 @@ class Trigger(Timer):
         t.name = s.get("name", None)
         t.days_of_week = s.get("days_of_week", None)
         
-        if s.has_key("arguments"):
+        if "arguments" in s:
             for i in s["arguments"]:
                 if 'value' in i:
                     t.args.append(i["value"])
 
-        if s.has_key("device"):
+        if "device" in s:
             t.device = vera.get_device_by_id(s["device"])
         else:
             t.device = None
 
-        if s.has_key("start"):
+        if "start" in s:
             t.start = Time.parse(s["start"])
         else:
             t.start = None
 
-        if s.has_key("stop"):
+        if "stop" in s:
             t.stop = Time.parse(s["stop"])
         else:
             t.stop = None
@@ -554,7 +553,7 @@ class Action(object):
         Invoke an action
         :return: a Job object, describing the job implementing the action.
         """
-        raise RuntimeError, "Not implemented"
+        raise RuntimeError("Not implemented")
 
     def parse(vera, s):
         """
@@ -579,8 +578,8 @@ class Action(object):
         if s["service"] == "urn:upnp-org:serviceId:RGBController1":
             return RGBAction.parse(vera, s)
 
-        raise RuntimeError, "Don't know how to handle service %s" % \
-            s["service"]
+        raise RuntimeError("Don't know how to handle service %s" %
+                           s["service"])
 
     parse = staticmethod(parse)
 
@@ -1005,7 +1004,7 @@ class Group(object):
 
         aset.delay = s.get("delay", 0)
 
-        if s.has_key("actions"):
+        if "actions" in s:
             for i in s["actions"]:
                 aset.actions.append(Action.parse(vera, i))
 
@@ -1093,21 +1092,21 @@ class SceneDefinition(object):
         for i in s["triggers"]:
             sd.triggers.append(Trigger.parse(vera, i))
 
-        if s.has_key("timers"):
+        if "timers" in s:
             for i in s["timers"]:
                 sd.timers.append(Timer.parse(i))
 
-        if s.has_key("groups"):
+        if "groups" in s:
             for i in s["groups"]:
                 sd.actions.append(Group.parse(vera, i))
 
-        if s.has_key("room"):
+        if "room" in s:
             if s["room"] == 0:
                 sd.room = None
             else:
                 sd.room = vera.get_room_by_id(s["room"])
 
-        if s.has_key("modeStatus"):
+        if "modeStatus" in s:
             sd.modes = Modes.parse(vera, s["modeStatus"])
 
         return sd
@@ -1178,6 +1177,7 @@ class Modes(object):
         return str(self.__dict__)
 
     def __eq__(self, obj):
+        if obj == None: return False
         return self.__dict__ == obj.__dict__ and type(self) == type(obj)
 
 class Device(object):
@@ -1211,7 +1211,7 @@ class Device(object):
 
         svc = "urn:upnp-org:serviceId:SwitchPower1"
         if not svc in self.services:
-            raise RuntimeError, "Device doesn't support the service"
+            raise RuntimeError("Device doesn't support the service")
         
         status = self.get_variable(svc, "Status")
         return status == 1
@@ -1223,7 +1223,7 @@ class Device(object):
 
         svc = "urn:upnp-org:serviceId:RGBController1"
         if not svc in self.services:
-            raise RuntimeError, "Device doesn't support the service"
+            raise RuntimeError("Device doesn't support the service")
 
         # Strip off hash.
         return self.get_variable(svc, "Color")[1:]
@@ -1236,7 +1236,7 @@ class Device(object):
 
         svc = "urn:upnp-org:serviceId:Dimming1"
         if not svc in self.services:
-            raise RuntimeError, "Device doesn't support the service"
+            raise RuntimeError("Device doesn't support the service")
 
         return self.get_variable(svc, "LoadLevelStatus")
 
@@ -1249,7 +1249,7 @@ class Device(object):
 
         svc = "urn:upnp-org:serviceId:TemperatureSensor1"
         if not svc in self.services:
-            raise RuntimeError, "Device doesn't support the service"
+            raise RuntimeError("Device doesn't support the service")
 
         return self.get_variable(svc, "CurrentTemperature")
 
@@ -1261,7 +1261,7 @@ class Device(object):
 
         svc = "urn:micasaverde-com:serviceId:HumiditySensor1"
         if not svc in self.services:
-            raise RuntimeError, "Device doesn't support the service"
+            raise RuntimeError("Device doesn't support the service")
 
         return self.get_variable(svc, "CurrentLevel")
      
@@ -1273,7 +1273,7 @@ class Device(object):
 
         svc = "urn:micasaverde-com:serviceId:LightSensor1"
         if not svc in self.services:
-            raise RuntimeError, "Device doesn't support the service"
+            raise RuntimeError("Device doesn't support the service")
 
         return self.get_variable(svc, "CurrentLevel")
       
@@ -1285,7 +1285,7 @@ class Device(object):
 
         svc = "urn:micasaverde-com:serviceId:EnergyMetering1"
         if not svc in self.services:
-            raise RuntimeError, "Device doesn't support the service"
+            raise RuntimeError("Device doesn't support the service")
 
         return self.get_variable(svc, "KWH")
       
@@ -1297,7 +1297,7 @@ class Device(object):
 
         svc = "urn:micasaverde-com:serviceId:EnergyMetering1"
         if not svc in self.services:
-            raise RuntimeError, "Device doesn't support the service"
+            raise RuntimeError("Device doesn't support the service")
 
         return self.get_variable(svc, "KWHReading")
       
@@ -1309,7 +1309,7 @@ class Device(object):
 
         svc = "urn:micasaverde-com:serviceId:EnergyMetering1"
         if not svc in self.services:
-            raise RuntimeError, "Device doesn't support the service"
+            raise RuntimeError("Device doesn't support the service")
 
         return self.get_variable(svc, "Watts")
 
@@ -1320,7 +1320,7 @@ class Device(object):
         """
         svc = "urn:upnp-org:serviceId:TemperatureSetpoint1"
         if not svc in self.services:
-            raise RuntimeError, "Device doesn't support the service"
+            raise RuntimeError("Device doesn't support the service")
 
         return self.get_variable(svc, "CurrentSetpoint")
 
@@ -1332,7 +1332,7 @@ class Device(object):
 
         svc = "urn:upnp-org:serviceId:HVAC_UserOperatingMode1"
         if not svc in self.services:
-            raise RuntimeError, "Device doesn't support the service"
+            raise RuntimeError("Device doesn't support the service")
         
         return self.get_variable(svc, "ModeStatus")
 
@@ -1344,7 +1344,7 @@ class Device(object):
 
         svc = "urn:micasaverde-com:serviceId:HaDevice1"
         if not svc in self.services:
-            raise RuntimeError, "Device doesn't support the service"
+            raise RuntimeError("Device doesn't support the service")
 
         return self.get_variable(svc, "BatteryLevel")
 
@@ -1479,12 +1479,12 @@ class Vera(object):
             d.id = int(i["id"])
             d.name = i["name"]
 
-            if i.has_key("manufacturer"):
+            if "manufactuerer" in i:
                 d.manufacturer = i["manufacturer"]
             else:
                 d.manufacturer = None
 
-            if i.has_key("model"):
+            if "model" in i:
                 d.model = i["model"]
             else:
                 d.model = None
@@ -1495,18 +1495,18 @@ class Vera(object):
 
             d.device_type = i["device_type"]
 
-            if i.has_key("device_file"):
+            if "device_file" in i:
                 d.device_file = i["device_file"]
                 
-            if i.has_key("device_json"):
+            if "device_json" in i:
                 d.device_json = i["device_json"]
 
-            if i.has_key("invisible") and int(i["invisible"]) > 0:
+            if "invisible" in i and int(i["invisible"]) > 0:
                 d.invisible = True
             else:
                 d.invisible = False
             
-            if i.has_key("room") and self.rooms.has_key(int(i["room"])):
+            if "room" in i and int(i["room"]) in self.rooms:
                 d.room = self.rooms[int(i["room"])]
             else:
                 d.room = None
@@ -1521,7 +1521,7 @@ class Vera(object):
             s.vera = self
             s.id = int(i["id"])
             s.name = i["name"]
-            if 'room' in i and self.rooms.has_key(int(i["room"])):
+            if 'room' in i and int(i["room"]) in self.rooms:
                 s.room = self.rooms[int(i["room"])]
             else:
                 s.room = None
@@ -1538,9 +1538,9 @@ class Vera(object):
         """
         if not isinstance(id, int):
             id = int(id)
-        if self.rooms.has_key(id):
+        if id in self.rooms:
             return self.rooms[id]
-        raise RuntimeError, "Room not known"
+        raise RuntimeError("Room not known")
 
     def get_room(self, name):
         """
@@ -1551,7 +1551,7 @@ class Vera(object):
         for i in self.rooms:
             if self.rooms[i].name == name:
                 return self.rooms[i]
-        raise RuntimeError, "Room '%s' not known" % name
+        raise RuntimeError("Room '%s' not known" % name)
 
     def get_device(self, name, room=None):
         """
@@ -1566,7 +1566,7 @@ class Vera(object):
             if self.devices[i].name == name:
                 if room == None or self.devices[i].room == room:
                     return self.devices[i]
-        raise RuntimeError, "Device '%s' not known" % name
+        raise RuntimeError("Device '%s' not known" % name)
 
     def get_device_by_id(self, id):
         """
@@ -1579,7 +1579,7 @@ class Vera(object):
         for i in self.devices:
             if self.devices[i].id == id:
                 return self.devices[i]
-        raise RuntimeError, "Device not found"
+        raise RuntimeError("Device not found")
 
     def get_devices(self):
         """
@@ -1855,14 +1855,14 @@ class VeraLocal(Vera):
         base = 'http://%s:%d' % (self.host, self.port)
         url = '%s/%s' % (base, path)
 
-        conn = urllib2.urlopen(url)
-        payload = conn.read()
-        try: 
+        req = requests.get(url)
+        payload = req.text
+
+        try:
+            # If JSON, decode else move on.
             payload = json.loads(payload)
         except:
             pass
-
-        conn.close()
 
         return payload
 
@@ -1913,7 +1913,7 @@ class VeraRemote(Vera):
         seed = "oZ7QE6LcLJp6fiWzdqZc"
 
         # Get auth tokens
-        sha1p = sha.new(user.lower() + password + seed)
+        sha1p = hashlib.sha(user.lower() + password + seed)
         sha1p = sha1p.hexdigest()
 
         auth_server = "vera-us-oem-autha11.mios.com"
@@ -1947,7 +1947,7 @@ class VeraRemote(Vera):
             if i["PK_Device"] == device:
                 server_device = i["Server_Device"]
         if server_device == None:
-            raise RuntimeError, "Device %s not known.\n" % device
+            raise RuntimeError("Device %s not known." % device)
                 
         sys.stderr.write("Server device: %s\n" % server_device)
 
@@ -2023,7 +2023,7 @@ def connect(config="LUUP-AUTH.json"):
     """
     config = json.loads(open(config, "r").read())
 
-    if config.has_key("local"):
+    if "local" in config:
         return VeraLocal(config["local"]["address"])
     else:
         user = config["remote"]["user"]

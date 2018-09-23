@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import sys
 import vera
@@ -26,10 +26,10 @@ for s in scenes:
     name = defn.name
 
     if len(defn.actions) != 1:
-        raise RuntimeError, "Can only handle scene on single device"
+        raise RuntimeError("Can only handle scene on single device")
 
     if len(defn.actions[0].actions) != 1:
-        raise RuntimeError, "Can only handle single device in a group"
+        raise RuntimeError("Can only handle single device in a group")
 
     device = defn.actions[0].actions[0].device
 
