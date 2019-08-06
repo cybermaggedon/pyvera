@@ -1913,7 +1913,9 @@ class VeraRemote(Vera):
         seed = "oZ7QE6LcLJp6fiWzdqZc"
 
         # Get auth tokens
-        sha1p = hashlib.sha(user.lower() + password + seed)
+        sha1p = user.lower() + password + seed
+        sha1p = sha1p.encode("utf-8")
+        sha1p = hashlib.sha1(sha1p)
         sha1p = sha1p.hexdigest()
 
         auth_server = "vera-us-oem-autha11.mios.com"
