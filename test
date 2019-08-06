@@ -1,104 +1,84 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-import urllib, urllib2, json
+import json
 import sys
 import vera
-import csv
-import json
 
 if len(sys.argv) != 2:
     sys.stderr.write("Usage:\n    get_schedule <config>\n")
     sys.exit(1)
 
-config = json.loads(open(sys.argv[1], "r").read())
-
-if config.has_key("local"):
-    ve = vera.VeraLocal(config["local"]["address"])
-else:
-    user = config["remote"]["user"]
-    password = config["remote"]["password"]
-    device = config["remote"]["device"]
-    ve = vera.VeraRemote(user, password, device)
+ve = vera.connect(sys.argv[1])
 
 dev = ve.get_device("Not used")
 
-print dev.get_switch()
+print(dev.get_switch())
 dev.set_switch(False)
-print dev.get_switch()
+print(dev.get_switch())
 dev.set_switch(True)
-print dev.get_switch()
-
-sys.exit(0)
+print(dev.get_switch())
 
 room = ve.get_room_by_id(1)
-print room.id, room.name
+print(room.id, room.name)
 
 room = ve.get_room("Heating")
-print room.id, room.name
+print(room.id, room.name)
 
-print
-
+print()
 dev = ve.get_device_by_id(3)
-print dev.id, dev.name
+print(dev.id, dev.name)
 
-print
-
+print()
 dev = ve.get_device("Sensor")
-print dev.id, dev.name
-print "%s battery level: %d" % (dev.name, dev.get_battery())
-print "%s temperature sensor: %f" % (dev.name, dev.get_current_temperature())
-print "%s humidity sensor: %d" % (dev.name, dev.get_current_humidity())
+print(dev.id, dev.name)
+print("%s battery level: %d" % (dev.name, dev.get_battery()))
+print("%s temperature sensor: %f" % (dev.name, dev.get_temperature()))
+print("%s humidity sensor: %d" % (dev.name, dev.get_humidity()))
 
-print
-
+print()
 dev = ve.get_device("Humidity sensor")
-print "%s humidity sensor: %d" % (dev.name, dev.get_current_humidity())
+print("%s humidity sensor: %d" % (dev.name, dev.get_humidity()))
 
-print
-
+print()
 dev = ve.get_device("Bathroom stat", room=room)
-print dev.id, dev.name
-print "%s temperature sensor: %f" % (dev.name, dev.get_current_temperature())
-print "%s is set to: %f" % (dev.name, dev.get_set_point())
-dev.set_set_point(7.0)
-print "%s is set to: %f" % (dev.name, dev.get_set_point())
+print(dev.id, dev.name)
+print("%s temperature sensor: %f" % (dev.name, dev.get_temperature()))
+print("%s is set to: %f" % (dev.name, dev.get_setpoint()))
+dev.set_setpoint(7.0)
+print("%s is set to: %f" % (dev.name, dev.get_setpoint()))
 
-print 
+print()
 dev = ve.get_device("Not used")
-print dev.id, dev.name
+print(dev.id, dev.name)
 dev.set_switch(True)
-print "%s switch set to: %s" % (dev.name, dev.get_switch())
+print("%s switch set to: %s" % (dev.name, dev.get_switch()))
 dev.set_switch(False)
-print "%s switch set to: %s" % (dev.name, dev.get_switch())
+print("%s switch set to: %s" % (dev.name, dev.get_switch()))
 
-print
-
+print()
 dev = ve.get_device("Attic")
-print dev.id, dev.name
-print "Attic switch set to:", dev.get_switch()
+print(dev.id, dev.name)
+print("Attic switch set to:", dev.get_switch())
 
-print
-
-print "Rooms:"
+print()
+print("Rooms:")
 rooms = ve.get_rooms()
 for i in rooms:
-    print "  %s: %s" % (i.id, i.name)
+    print("  %s: %s" % (i.id, i.name))
 
-print
-
-print "Devices:"
+print()
+print("Devices:")
 devices = ve.get_devices()
 for i in devices:
     if i.room != None:
         room = i.room.name
     else:
         room = "n/a"
-    print "  %s: %s (%s)" % (i.id, i.name, room)
+    print("  %s: %s (%s)" % (i.id, i.name, room))
 
-print
-
-print "Scenes:"
+print()
+print("Scenes:")
 scenes = ve.get_scenes()
 for i in scenes:
-    print "  %s: %s" % (i.id, i.name)
+    print("  %s: %s" % (i.id, i.name))
 
