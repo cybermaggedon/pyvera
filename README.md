@@ -12,7 +12,13 @@ Needs to be running UI7 for remote mode, I believe.
 
 I'm using Linux, it may be possible use this stuff in Windows, perhaps.
 
-## Examples
+## Install
+
+```
+pip3 install git+https://github.com/cybermaggedon/pyvera
+```
+
+## Examples: Writing code
 
 ### Connect to Vera
 
@@ -228,7 +234,7 @@ sd = vera.SceneDefinition("My complicated scene", [tr], m, [t1, t2, t3, t4],
 ve.create_scene(sd)
 ```
 
-## Utilites
+## Command-line utilites
 
 It can be fiddly to manage a heating schedule for a large heating system
 through the web interface, so I've got some utilities that allow the schedule
@@ -259,10 +265,9 @@ e.g.
 Ground floor on,Ground floor stat,set,11.0,"1,2,3,4,5",06:30,"1,2,3,4,5",17:30,"6,7",09:30
 ```
 
-
 ### Configure
 
-Create a file e.g. ```LUUP-AUTH.json```.  Example forms for local comms to Vera:
+Create a file e.g. ```AUTH.json```.  Example forms for local comms to Vera:
 ```
 {
     "local": {
@@ -291,22 +296,24 @@ Parameters to this utility are the configuration file, and the room name.  The
 schedule is read from the standard input.
 
 ```
-./upload_scenes LUUP-AUTH.json Heating < SCHEDULE.csv
+vera-upload-scenes AUTH.json Heating < SCHEDULE.csv
 ```
 
 If all works, you should see a set of scenes appear in the web interface.
 
-The ```upload_scenes``` utility uses a restricted set of the scene features,
-so may get confused if you start creating your own scenes in the room.
+The `vera-upload-scenes` utility uses a restricted set of the
+scene features, so may get confused if you start creating your own
+scenes in the room.
 
-The ```get_scenes``` utility returns the scenes as a CSV file...
+The `vera-get-scenes` utility returns the scenes as a CSV file...
+
 ```
-./get_scenes LUUP-AUTH.json Heating
-```
-and the ```delete_scenes``` utility deletes all scenes in a room...
-```
-./delete_scenes LUUP-AUTH.json Heating
+vera-get-scenes AUTH.json Heating
 ```
 
+and the `vear-delete-scenes` utility deletes all scenes in a room...
 
+```
+vera-delete-scenes AUTH.json Heating
+```
 
