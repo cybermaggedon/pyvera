@@ -11,7 +11,7 @@ ve = vera.connect(sys.argv[1])
 
 weather = ve.get_weather()
 
-print("Temperature:", weather[0])
-print("Outlook:", weather[1])
+print("Temperature:", weather["temperature"])
+print("Outlook:", weather["weather"])
 
 

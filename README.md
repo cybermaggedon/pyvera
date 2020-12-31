@@ -317,3 +317,11 @@ and the `vear-delete-scenes` utility deletes all scenes in a room...
 vera-delete-scenes AUTH.json Heating
 ```
 
+### Weather
+
+The weather API is reverse-engineered, don't rely on this.
+
+```
+vera-get-weather AUTH.json
+```
+

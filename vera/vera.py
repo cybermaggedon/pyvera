@@ -40,6 +40,59 @@ import base64
 import time
 import requests
 
+# Reverse-engineered by looking at icons at
+# http://.../cmh/skins/default/img/icons/{code}.png
+weather_types = {
+    0: "hurricane",
+    1: "cyclone",
+    2: "heavy-cyclone",
+    3: "thunderstorm",
+    4: "thunderstorm",
+    5: "sleet",
+    6: "sleet",
+    7: "heavy-sleet",
+    8: "freezing-rain",
+    9: "hailstorm",
+    10: "freezing-rain",
+    11: "rain",
+    12: "heavy-hailstorm",
+    13: "heavy-snow",
+    14: "snow",
+    15: "hailstorm",
+    16: "heavy-snow",
+    17: "hail",
+    18: "heavy-sleet",
+    19: "windy",
+    20: "fog",
+    21: "mist",
+    22: "cloudy",
+    23: "windy",
+    24: "solar-eclipse",
+    25: "freeze",
+    26: "cloudy",
+    27: "partly-cloudy",
+    28: "sunny-intervals",
+    29: "clear-intervals",
+    30: "sunny-intervals",
+    31: "clear-night",
+    32: "sun",
+    33: "clear-night",
+    34: "sun",
+    35: "sleet",
+    36: "heatwave",
+    37: "thunderstorm",
+    38: "thunderstorm",
+    39: "thunderstorm",
+    40: "rainstorm",
+    41: "snowstorm",
+    42: "snowstorm",
+    43: "snowstorm",
+    44: "heavy-cloud",
+    45: "thunderstorm",
+    46: "snow",
+    47: "heavy-thunderstorm"
+}
+
 class Time(object):
     """
     Time object represents a time value in a 24-hour day i.e. a value
@@ -1727,8 +1780,10 @@ class Vera(object):
     def get_weather(self):
         """
         Gets the weather status for the current location.
-        :returns: a tuple of two items, first item is a floating point
-        local temperature, second is a human-readable outlook.
+        :returns: a dict containing elements: code, weather, temperature.
+        Code is a weather code (origin unknown?) weather is a string
+        containing a token.  The weather token is reverse-engineered, accuracy
+        unknown.
         """
 
         city = self.user_data["weatherSettings"]["weatherCity"]
@@ -1739,9 +1794,18 @@ class Vera(object):
         url = "http://%s/?tempFormat=%s&cityWeather=%s&countryWeather=%s" % \
               (host, temp_scale, Vera.urlencode(city), Vera.urlencode(country))
 
+        resp = {}
+
         weather = self.proxy_get(url)
 
-        return (float(weather["temp"]), weather["text"])
+        if "code" in weather:
+            resp["code"] = weather["code"]
+            if weather["code"] in weather_types:
+                resp["weather"] = weather_types[weather["code"]]
+
+        resp["temperature"] = weather["temp"]
+
+        return resp
 
     def all_switches(self, value):
         """
