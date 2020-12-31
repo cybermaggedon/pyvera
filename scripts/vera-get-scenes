@@ -5,7 +5,7 @@ import vera
 import csv
 
 if len(sys.argv) != 3:
-    sys.stderr.write("Usage:\n    get_schedule <config> <room>\n")
+    sys.stderr.write("Usage:\n    vera-get-scenes <config> <room>\n")
     sys.exit(1)
 
 ve = vera.connect(sys.argv[1])
