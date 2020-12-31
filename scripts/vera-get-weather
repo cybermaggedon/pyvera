@@ -4,7 +4,7 @@ import sys
 import vera
 
 if len(sys.argv) != 2:
-    sys.stderr.write("Usage:\n    get_schedule <config>\n")
+    sys.stderr.write("Usage:\n    vera-get-weather <config>\n")
     sys.exit(1)
 
 ve = vera.connect(sys.argv[1])
