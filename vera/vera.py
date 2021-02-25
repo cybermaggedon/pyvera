@@ -1420,6 +1420,8 @@ class Device(object):
             k, v = part.split("=")
             valmap[channel_map[int(k)]] = int(v)
 
+        # Hard-coded logic.  In ZW098, Warm white over-rides Daylight white,
+        # over-rides RGB.
         if "W" in valmap and valmap["W"] > 0:
             return Warm(valmap["W"])
 
