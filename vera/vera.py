@@ -625,6 +625,9 @@ class Action(object):
         if s["service"] == "urn:upnp-org:serviceId:RGBController1":
             return RGBAction.parse(vera, s)
 
+        if s["service"] == "urn:micasaverde-com:serviceId:Color1":
+            return ColorAction.parse(vera, s)
+
         raise RuntimeError("Don't know how to handle service %s" %
                            s["service"])
 
@@ -945,6 +948,127 @@ class RGBAction(Action):
         sa.value = s["arguments"][0]["value"]
         return sa
 
+class Color:
+    pass
+
+class Daylight:
+    def __init__(self, value):
+        self.value = value
+
+class Warm:
+    def __init__(self, value):
+        self.value = value
+
+class RGB:
+    def __init__(self, r, g, b):
+        self.value = (r, g, b)
+
+class ColorAction(Action):
+    """
+    Action which operates against a colour controller which has color channels
+    """
+
+    def __init__(self, device=None, color=None):
+        """
+        Creates a ColorAction object.
+        :param device: Device object describing the device to apply
+        :param value: value for color
+        """
+        self.device = device
+        self.color = color
+
+    def output(self):
+        """
+        Formats the value in a format suitable for LUUP comms.
+        """
+
+        if isinstance(self.color, Daylight):
+            return {
+                "device": self.device.id, 
+                "action": "SetColor",
+                "arguments": [
+                    {
+                        "name": "newColorTarget", 
+                        "value": "D" + str(self.color.value)
+                    }
+                ],
+                "service": "urn:micasaverde-com:serviceId:Color1"
+            }
+        elif isinstance(self.color, Warm):
+            return {
+                "device": self.device.id, 
+                "action": "SetColor",
+                "arguments": [
+                    {
+                        "name": "newColorTarget", 
+                        "value": "W" + str(self.color.value)
+                    }
+                ],
+                "service": "urn:micasaverde-com:serviceId:Color1"
+            }
+        elif isinstance(self.color, RGB):
+            return {
+                "device": self.device.id, 
+                "action": "SetColorRGB",
+                "arguments": [
+                    {
+                        "name": "newColorRGBTarget", 
+                        "value": "%d,%d,%d" % self.color.value
+                    }
+                ],
+                "service": "urn:micasaverde-com:serviceId:Color1"
+            }
+        else:
+            raise RuntimeError("Color object type not recognised.")
+
+    def invoke(self):
+        """
+        Implements the defined action.
+        :return: a Job object, describing the job implementing the action.
+        """
+
+        base="data_request?id=action"
+        
+        if isinstance(self.color, Warm):
+            action = "SetColor"
+            var = "newColorTarget"
+            value = "W" + str(self.color.value)
+        elif isinstance(self.color, Daylight):
+            action = "SetColor"
+            var = "newColorTarget"
+            value = "D" + str(self.color.value)
+        else:
+            action = "SetColorRGB"
+            var = "newColorRGBTarget"
+            value = "%d,%d,%d" % (self.color.value)
+
+        svc = "urn:micasaverde-com:serviceId:Color1"
+        path = "%s&DeviceNum=%d&serviceId=%s&action=%s&%s=%s&output_format=json" \
+               % (base, self.device.id, svc, action, var, value)
+
+        status = self.device.vera.get(path)
+        job = Job()
+
+        try:
+            job.id = int(status["u:SetColorResponse"]["JobID"])
+        except:
+            job.id = int(status["u:SetColorRGBResponse"]["JobID"])
+        job.vera = self.device.vera
+        return job
+
+    @staticmethod
+    def parse(vera, s):
+        """
+        Converts LUUP SetTarget values to a ColorAction object.
+
+        :param s: Value from LUUP comms.
+        """
+        sa = ColorAction()
+
+        sa.device = vera.get_device_by_id(s["device"])
+        sa.value = s["arguments"][0]["value"]
+        return sa
+
 class SceneAction(Action):
     """
     Action which runs a scene
@@ -1059,7 +1183,7 @@ class Group(object):
 class SceneDefinition(object):
 
     def __init__(self, name=None, triggers=None, modes=None, timers=None,
-                 actions=None, room=None):
+                 actions=None, room=None, lua=None):
 
         self.name = name
 
@@ -1081,6 +1205,8 @@ class SceneDefinition(object):
             self.actions = []
 
         self.room = room
+
+        self.lua = lua
 
     def output(self):
         """
@@ -1113,6 +1239,10 @@ class SceneDefinition(object):
 
         if self.room != None:
             val["room"] = self.room.id
+
+        if self.lua != None:
+            val["lua"] = base64.b64encode(self.lua.encode("utf-8")).decode("utf-8")
+            val["encoded_lua"] = 1
 
         return val
 
@@ -1148,6 +1278,9 @@ class SceneDefinition(object):
 
         if "modeStatus" in s:
             sd.modes = Modes.parse(vera, s["modeStatus"])
+
+        if "lua" in s:
+            sd.lua = base64.b64decode(s["lua"]).decode("utf-8")
 
         return sd
 
@@ -1264,6 +1397,50 @@ class Device(object):
 
         # Strip off hash.
         return self.get_variable(svc, "Color")[1:]
+
+    def get_color(self):
+        """
+        Get the current color of a device which supports color.
+        Returns a dict mapping channel ID to color value (an int).
+        """
+
+        svc = "urn:micasaverde-com:serviceId:Color1"
+        if not svc in self.services:
+            raise RuntimeError("Device doesn't support the service")
+
+        val = self.get_variable(svc, "CurrentColor")
+
+        # Get color channels, and produce a channel number -> ID map.
+        channels = self.get_variable(svc, "SupportedColors")
+        channels = channels.split(",")
+        channel_map = { i: channels[i] for i in range(0, len(channels)) }
+
+        valmap = {}
+        for part in val.split(","):
+            k, v = part.split("=")
+            valmap[channel_map[int(k)]] = int(v)
+
+        if "W" in valmap and valmap["W"] > 0:
+            return Warm(valmap["W"])
+
+        if "D" in valmap and valmap["D"] > 0:
+            return Daylight(valmap["W"])
+
+        return RGB(valmap["R"], valmap["G"], valmap["B"])
+
+    def set_color(self, value):
+        """
+        Get the current color of a device which supports color.  
+        Returns a string.
+        """
+
+        svc = "urn:micasaverde-com:serviceId:Color1"
+        if not svc in self.services:
+            raise RuntimeError("Device doesn't support the service")
+
+        # Get color channels, and produce an channel ID to number map.
+        act = ColorAction(self, value)
+        return act.invoke()
 
     def get_dimmer(self):
         """
