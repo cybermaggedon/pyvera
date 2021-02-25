@@ -125,6 +125,7 @@ class Time(object):
             return "%02d:%02d:%02dT" % self.time
         return "%02d:%02d:%02d" % self.time
 
+    @staticmethod
     def parse(s):
         """
         Converts LUUP time values to a Time object.
@@ -150,8 +151,6 @@ class Time(object):
         return Time(int(x[0]), int(x[1]), int(x[2]), after_sunrise=rise,
                     after_sunset=set)
 
-    parse = staticmethod(parse)
-
     def __str__(self):
         return str(self.__dict__)
 
@@ -164,6 +163,7 @@ class Timer(object):
     implemented in the four subclasses.
     """
 
+    @staticmethod
     def parse(s):
         """
         Converts LUUP timer values to a Timer object.
@@ -184,8 +184,6 @@ class Timer(object):
             return AbsoluteTimer.parse(s)
 
         raise RuntimeError("Parsing timer not implemented.")
-
-    parse = staticmethod(parse)
 
     def __str__(self):
         return str(self.__dict__)
@@ -228,6 +226,7 @@ class DayOfWeekTimer(Timer):
             "time": self.time.output()
        }
 
+    @staticmethod
     def parse(s):
         """
         Converts LUUP day-of-week timer values to a DayOfWeekTimer object.
@@ -243,8 +242,6 @@ class DayOfWeekTimer(Timer):
         else:
             t.time = None
         return t
-
-    parse = staticmethod(parse)
     
 class DayOfMonthTimer(Timer):
     """
@@ -281,6 +278,7 @@ class DayOfMonthTimer(Timer):
             "time": self.time.output()
         }
 
+    @staticmethod
     def parse(s):
         """
         Converts LUUP day-of-month timer values to a DayOfMonthTimer object.
@@ -296,8 +294,6 @@ class DayOfMonthTimer(Timer):
         else:
             t.time = None
         return t
-
-    parse = staticmethod(parse)
     
 class IntervalTimer(Timer):
     """
@@ -355,6 +351,7 @@ class IntervalTimer(Timer):
             "interval": interval
         }
 
+    @staticmethod
     def parse(s):
         """
         Converts LUUP interval timer values to a IntervalTimer object.
@@ -375,8 +372,6 @@ class IntervalTimer(Timer):
             if ival[-1:] == "d":
                 t.days = int(ival[:-1])
         return t
-
-    parse = staticmethod(parse)
     
 class AbsoluteTimer(Timer):
     """
@@ -415,6 +410,7 @@ class AbsoluteTimer(Timer):
             "abstime": time
         }
 
+    @staticmethod
     def parse(s):
         """
         Converts LUUP absolute timer values to an AbsoluteTimer object.
@@ -449,8 +445,6 @@ class AbsoluteTimer(Timer):
             t.seconds = int(timeparts[2])
 
         return t
-
-    parse = staticmethod(parse)
     
 class Trigger(Timer):
     """
@@ -510,6 +504,7 @@ class Trigger(Timer):
 
         return val
 
+    @staticmethod
     def parse(vera, s):
         """
         Converts LUUP trigger values to a Trigger object.
@@ -546,8 +541,6 @@ class Trigger(Timer):
             t.stop = None
 
         return t
-
-    parse = staticmethod(parse)
 
     def __str__(self):
         return str(self.__dict__)
@@ -608,6 +601,7 @@ class Action(object):
         """
         raise RuntimeError("Not implemented")
 
+    @staticmethod
     def parse(vera, s):
         """
         Converts LUUP action values to an Action object.
@@ -633,8 +627,6 @@ class Action(object):
 
         raise RuntimeError("Don't know how to handle service %s" %
                            s["service"])
-
-    parse = staticmethod(parse)
 
     def __str__(self):
         return str(self.__dict__)
@@ -692,7 +684,8 @@ class SetpointAction(Action):
         job.id = int(status["u:SetCurrentSetpointResponse"]["JobID"])
         job.vera = self.device.vera
         return job
-    
+
+    @staticmethod
     def parse(vera, s):
         """
         Converts LUUP SetCurrentSetpoint action values to a SetpointAction
@@ -704,8 +697,6 @@ class SetpointAction(Action):
         ha.device = vera.get_device_by_id(s["device"])
         ha.value = s["arguments"][0]["value"]
         return ha
-
-    parse = staticmethod(parse)
 
 class SwitchAction(Action):
     """
@@ -761,6 +752,7 @@ class SwitchAction(Action):
         job.vera = self.device.vera
         return job
 
+    @staticmethod
     def parse(vera, s):
         """
         Converts LUUP SetTarget values to a SwitchAction object.
@@ -771,8 +763,6 @@ class SwitchAction(Action):
         ha.device = vera.get_device_by_id(s["device"])
         ha.value = s["arguments"][0]["value"]
         return ha
-
-    parse = staticmethod(parse)
 
 class DimmerAction(Action):
     """
@@ -823,6 +813,7 @@ class DimmerAction(Action):
         job.vera = self.device.vera
         return job
 
+    @staticmethod
     def parse(vera, s):
         """
         Converts LUUP values to a DimmerAction object.
@@ -833,8 +824,6 @@ class DimmerAction(Action):
         ha.device = vera.get_device_by_id(s["device"])
         ha.value = s["arguments"][0]["value"]
         return ha
-
-    parse = staticmethod(parse)
 
 class HeatingAction(Action):
     """
@@ -885,6 +874,7 @@ class HeatingAction(Action):
         job.vera = self.device.vera
         return job
 
+    @staticmethod
     def parse(vera, s):
         """
         Converts LUUP values to a HeatingAction object.
@@ -896,8 +886,6 @@ class HeatingAction(Action):
         ha.value = s["arguments"][0]["value"]
         return ha
 
-    parse = staticmethod(parse)
-
 class RGBAction(Action):
     """
     Action which operates against a colour controller which has 5 channels
@@ -905,7 +893,7 @@ class RGBAction(Action):
 
     def __init__(self, device=None, value=None):
         """
-        Creates a RGAction object.
+        Creates a RGBAction object.
         :param device: Device object describing the device to apply
         :param value: value for color
         """
@@ -945,6 +933,7 @@ class RGBAction(Action):
         job.vera = self.device.vera
         return job
 
+    @staticmethod
     def parse(vera, s):
         """
         Converts LUUP SetTarget values to a RGBAction object.
@@ -955,8 +944,6 @@ class RGBAction(Action):
         sa.device = vera.get_device_by_id(s["device"])
         sa.value = s["arguments"][0]["value"]
         return sa
-
-    parse = staticmethod(parse)
 
 class SceneAction(Action):
     """
@@ -1005,6 +992,7 @@ class SceneAction(Action):
 
         return True
 
+    @staticmethod
     def parse(vera, s):
         """
         Converts LUUP SetTarget values to a RGBAction object.
@@ -1015,8 +1003,6 @@ class SceneAction(Action):
         sa.vera = vera
         sa.value = s["arguments"][0]["value"]
         return sa
-
-    parse = staticmethod(parse)
 
 class Group(object):
     """
@@ -1047,6 +1033,7 @@ class Group(object):
             "actions": acts
         }
 
+    @staticmethod
     def parse(vera, s):
         """
         Converts LUUP group value to an Group object.
@@ -1062,8 +1049,6 @@ class Group(object):
                 aset.actions.append(Action.parse(vera, i))
 
         return aset
-
-    parse = staticmethod(parse)
 
     def __str__(self):
         return str(self.__dict__)
@@ -1131,6 +1116,7 @@ class SceneDefinition(object):
 
         return val
 
+    @staticmethod
     def parse(vera, s):
         """
         Converts LUUP scene to a SceneDefinition object.
@@ -1164,8 +1150,6 @@ class SceneDefinition(object):
             sd.modes = Modes.parse(vera, s["modeStatus"])
 
         return sd
-
-    parse = staticmethod(parse)
 
     def __str__(self):
         return str(self.__dict__)
@@ -1207,6 +1191,7 @@ class Modes(object):
             val = val + "4"
         return val
 
+    @staticmethod
     def parse(vera, s):
         """
         Converts LUUP modeSet values to a Mode object.
@@ -1224,8 +1209,6 @@ class Modes(object):
         m.away = y.get(1, None)
         m.night = y.get(2, None)
         m.vacation = y.get(3, None)
-
-    parse = staticmethod(parse)
 
     def __str__(self):
         return str(self.__dict__)
@@ -1760,6 +1743,7 @@ class Vera(object):
     def __eq__(self, obj):
         return self.__dict__ == obj.__dict__ and type(self) == type(obj)
 
+    @staticmethod
     def urlencode(s):
         # URL-encoding.  Vera not happy with Python's standard
         # URL-encoding.
@@ -1775,8 +1759,6 @@ class Vera(object):
         s = s.replace(" ", "%20")
         s = s.replace("/", "%2f")
         return s
-
-    urlencode = staticmethod(urlencode)
         
     def get_weather(self):
         """
