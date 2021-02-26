@@ -8,6 +8,9 @@ both local and remote mode i.e. you can communicate directly with the Vera from
 your home network, or interact with the Vera using your credentials on MCV's
 relay servers if you are away from your home network.
 
+The library provides Python API access, there are also some command-line
+tools, see below.
+
 Needs to be running UI7 for remote mode, I believe.
 
 I'm using Linux, it may be possible use this stuff in Windows, perhaps.
