@@ -894,26 +894,29 @@ class RGBAction(Action):
     Action which operates against a colour controller which has 5 channels
     """
 
-    def __init__(self, device=None, value=None):
+    def __init__(self, device=None, color=None):
         """
         Creates a RGBAction object.
         :param device: Device object describing the device to apply
-        :param value: value for color
+        :param color: value for color, should be an RGB, Daylight or Warm object
         """
         self.device = device
-        self.value = value
+        self.color = color
 
     def output(self):
         """
         Formats the value in a format suitable for LUUP comms.
         """
+        h = self.color.to_hex()
+
+        # FIXME: RGB actions don't seem to work
         return {
             "device": self.device.id, 
             "action": "SetColor",
             "arguments": [
                 {
                     "name": "newColorTargetValue", 
-                    "value": self.value
+                    "value": self.color.to_hex()
                 }
             ], 
             "service": "urn:upnp-org:serviceId:RGBController1"
@@ -929,7 +932,7 @@ class RGBAction(Action):
         action = "SetColorTarget"
         svc = "urn:upnp-org:serviceId:RGBController1"
         path = "%s&DeviceNum=%d&serviceId=%s&action=%s&newColorTargetValue=%s&transitionDuration=0&transitionNbSteps=10&output_format=json" \
-               % (base, self.device.id, svc, action, self.value)
+               % (base, self.device.id, svc, action, self.color.to_hex())
         status = self.device.vera.get(path)
         job = Job()
         job.id = int(status["u:SetColorTargetResponse"]["JobID"])
@@ -945,23 +948,50 @@ class RGBAction(Action):
         """
         sa = RGBAction()
         sa.device = vera.get_device_by_id(s["device"])
-        sa.value = s["arguments"][0]["value"]
+        value = s["arguments"][0]["value"]
+        sa.color = Color.parse(value)
         return sa
 
 class Color:
-    pass
+    @staticmethod
+    def parse(s):
+        if len(s) not in [6, 8, 10]:
+            raise RuntimeError("Could not parse color %s" % s)
+        if s[:6] != "000000":
+            return RGB(int(s[0:2], 16), int(s[2:4], 16), int(s[4:6], 16))
+        if len(s) > 6:
+            if s[6:8] != "00":
+                return Warm(int(s[6:8], 16))
+        if len(s) == 10:
+            if s[8:10] != "00":
+                return Daylight(int(s[8:10], 16))
+
+        # All zeroes.
+        return RGB(0, 0, 0)
 
 class Daylight:
     def __init__(self, value):
         self.value = value
+    def __str__(self):
+        return "D" + str(self.value)
+    def to_hex(self):
+        return "00000000%02x" % self.value
 
 class Warm:
     def __init__(self, value):
         self.value = value
+    def __str__(self):
+        return "W" + str(self.value)
+    def to_hex(self):
+        return "000000%02x00" % self.value
 
 class RGB:
     def __init__(self, r, g, b):
         self.value = (r, g, b)
+    def __str__(self):
+        return "RGB(%d,%d,%d)" % (self.value)
+    def to_hex(self):
+        return "%02x%02x%02x0000" % self.value
 
 class ColorAction(Action):
     """
@@ -1066,7 +1096,23 @@ class ColorAction(Action):
         sa = ColorAction()
 
         sa.device = vera.get_device_by_id(s["device"])
-        sa.value = s["arguments"][0]["value"]
+        value = s["arguments"][0]["value"]
+
+        if s["action"] == "SetColorRGB":
+            cols = value.split(",")
+            if len(cols) != 3:
+                raise RuntimeError("Could not parse RGB: %s", value)
+            cols = [ int(i) for i in cols ]
+            sa.color = RGB(cols[0], cols[1], cols[2])
+
+        elif s["action"] == "SetColor" and value[0] == "D":
+
+            sa.color = Daylight(int(value[1:]))
+
+        elif s["action"] == "SetColor" and value[0] == "W":
+
+            sa.color = Warm(int(value[1:]))
+
         return sa
 
 class SceneAction(Action):

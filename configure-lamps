@@ -28,12 +28,25 @@ scenes = ve.get_scenes()
 
 for sc in scenes:
 
-    if sc.name in ["Red Glow", "Orange Glow", "Warm White", "Cool Green",
+    if sc.name in ["Red", "Low Red", "Orange Glow", "Warm White", "Cool Green",
                    "Off"]:
         sc.delete()
 
 m = vera.Modes(home=True, away=True, night=True)
 room = ve.get_room("Office")
+
+# Low Red
+
+colour = vera.RGB(30, 0, 0)
+
+actions = vera.Group(0, on + [
+    vera.ColorAction(i, colour)
+    for i in devices
+])
+
+sd = vera.SceneDefinition("Low Red", [], m, [], [actions], room)
+
+ve.create_scene(sd)
 
 # Red
 
@@ -44,7 +57,7 @@ actions = vera.Group(0, on + [
     for i in devices
 ])
 
-sd = vera.SceneDefinition("Red Glow", [], m, [], [actions], room)
+sd = vera.SceneDefinition("Red", [], m, [], [actions], room)
 
 ve.create_scene(sd)
 

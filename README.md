@@ -97,7 +97,26 @@ print "%s dimmer set to: %d" % (dev.name, dev.get_dimmer())
 dev.set_dimmer(75)
 ```
 
-For RGB controllers:
+For RGBW devices (like Aeotec ZW098):
+
+```
+# Get device by name
+dev = ve.get_device("Lamp1")
+
+# Color returned is an RGB, Daylight or Warm object.
+col = dev.get_color()
+print(type(col), col)
+
+# Set color
+col = vera.RGB(100, 50, 0)
+#col = vera.Daylight(50)
+#col = vera.Warm(150)
+
+# Set colour
+dev.set_color(col)
+```
+
+For RGBController devices:
 
 ```
 # Get device by name
@@ -107,26 +126,8 @@ dev = ve.get_device("Conservatory RGB")
 print "%s set to: %d" % (dev.name, dev.get_rgb())
 
 # Set dimmer
-dev.set_dimmer("E35F3D0000")
-```
-
-For RGBW controllers which don't support the RGB standard (like Aeotec ZW098):
-
-```
-# Get device by name
-dev = ve.get_device("Lamp1")
-
-# It's complicated
-col = dev.get_color()
-print(type(col))
-
-# Set color
-col = vera.RGB(100, 50, 0)
-#col = vera.Daylight(50)
-#col = vera.Warm(150)
-
-# Set colour
-dev.set_color(col)
+dev.set_rgb(vera.RGB(40, 50, 60))
+#dev.set_rgb(vera.Daylight(50))
 ```
 
 Thermostat example:
