@@ -179,7 +179,7 @@ for i in scenes:
 # Get room
 room = ve.get_room("Heating")
 
-# Iterate, deleting all Heating scenes.
+# Iterate, find scene and execute it.
 scenes = ve.get_scenes()
 for i in scenes:
     if i.name == "Hot water":
@@ -192,7 +192,7 @@ for i in scenes:
 # Get room
 room = ve.get_room("Heating")
 
-# Iterate, deleting all Heating scenes.
+# Iterate, find scenes in a room and delete them
 scenes = ve.get_scenes()
 for i in scenes:
     if i.room == room:
