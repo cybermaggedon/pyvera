@@ -19,95 +19,53 @@ devices = [
     ve.get_device("Lamp 4")
 ]
 
-on = [
-    vera.SwitchAction(i, 1)
-    for i in devices
+def color(x):
+    return vera.Group(0, 
+                      [
+                          vera.SwitchAction(i, 1)
+                          for i in devices
+                      ] + [
+                          vera.ColorAction(i, x)
+                          for i in devices
+                      ])
+
+def off():
+    return vera.Group(0, [
+        vera.SwitchAction(i, "off")
+        for i in devices
+    ])
+    
+lighting_scenes = [
+    ("Red", color(vera.RGB(80, 0, 0))),
+    ("Low Red", color(vera.RGB(30, 0, 0))),
+    ("Orange Glow", color(vera.RGB(100, 40, 0))),
+    ("Cool Green", color(vera.RGB(0, 90, 20))),
+    ("Warm White", color(vera.Warm(120))),
+    ("Cool White", color(vera.Daylight(120))),
+    ("White Glow", color(vera.Warm(40))),
+    ("Off", off())
 ]
+
+scene_names = set([v[0] for v in lighting_scenes])
 
 scenes = ve.get_scenes()
 
 for sc in scenes:
-
-    if sc.name in ["Red", "Low Red", "Orange Glow", "Warm White", "Cool Green",
-                   "Off"]:
+    if sc.name in scene_names:
         sc.delete()
 
 m = vera.Modes(home=True, away=True, night=True)
 room = ve.get_room("Office")
 
-# Low Red
+for sc in lighting_scenes:
 
-colour = vera.RGB(30, 0, 0)
+    name = sc[0]
+    actions = sc[1]
 
-actions = vera.Group(0, on + [
-    vera.ColorAction(i, colour)
-    for i in devices
-])
+    print(name, "...")
 
-sd = vera.SceneDefinition("Low Red", [], m, [], [actions], room)
+    sd = vera.SceneDefinition(name, [], m, [], [actions], room)
 
-ve.create_scene(sd)
+    ve.create_scene(sd)
 
-# Red
-
-colour = vera.RGB(80, 0, 0)
-
-actions = vera.Group(0, on + [
-    vera.ColorAction(i, colour)
-    for i in devices
-])
-
-sd = vera.SceneDefinition("Red", [], m, [], [actions], room)
-
-ve.create_scene(sd)
-
-# Orange
-
-colour = vera.RGB(100, 40, 0)
-
-actions = vera.Group(0, on + [
-    vera.ColorAction(i, colour)
-    for i in devices
-])
-
-sd = vera.SceneDefinition("Orange Glow", [], m, [], [actions], room)
-
-ve.create_scene(sd)
-
-# Green
-
-colour = vera.RGB(0, 90, 20)
-
-actions = vera.Group(0, on + [
-    vera.ColorAction(i, colour)
-    for i in devices
-])
-
-sd = vera.SceneDefinition("Cool Green", [], m, [], [actions], room)
-
-ve.create_scene(sd)
-
-# White
-
-colour = vera.Warm(60)
-
-actions = vera.Group(0, on + [
-    vera.ColorAction(i, colour)
-    for i in devices
-])
-
-sd = vera.SceneDefinition("Warm White", [], m, [], [actions], room)
-
-ve.create_scene(sd)
-
-# Off
-
-actions = vera.Group(0, [
-    vera.SwitchAction(i, "off")
-    for i in devices
-])
-
-sd = vera.SceneDefinition("Off", [], m, [], [actions], room)
-
-ve.create_scene(sd)
 

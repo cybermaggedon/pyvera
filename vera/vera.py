@@ -110,6 +110,9 @@ class Time(object):
         """
         assert (after_sunrise and after_sunset) == False, \
             "Must not specify both after_sunrise and after_sunset"
+#        assert isinstance(h, int), "h must be integer"
+#        assert isinstance(m, int), "m must be integer"
+#        assert isinstance(s, int), "s must be integer"
         
         self.time = (h, m, s)
         self.after_sunrise = after_sunrise
@@ -208,6 +211,11 @@ class DayOfWeekTimer(Timer):
         the days of the week, 1=Monday etc.
         :param time: A Time object representing the time.
         """
+
+#        assert isinstance(days, list), "days should be a list of integers"
+#        assert all(isinstance(elt, int) for elt in days), "days should be list of integers"
+#        assert all(1 <= elt <= 7 for elt in days), "days elements should be 1-7"
+
         self.id = id
         self.name = name
         self.days = days
@@ -260,6 +268,10 @@ class DayOfMonthTimer(Timer):
         the days of the month, 1=1st etc.
         :param time: A Time object representing the time.
         """
+#        assert isinstance(days, list), "days should be a list of integers"
+#        assert all(isinstance(elt, int) for elt in days), "days should be list of integers"
+#        assert all(1 <= elt <= 31 for elt in days), "days elements should be 1-31"
+
         self.id = id
         self.name = name
         self.days = days
@@ -751,7 +763,12 @@ class SwitchAction(Action):
         status = self.device.vera.get(path)
 
         job = Job()
-        job.id = int(status["u:SetTargetResponse"]["JobID"])
+
+        # Sometimes get a buggy response
+        try:
+            job.id = int(status["u:SetTargetResponse"]["JobID"])
+        except:
+            job.id = int(status["u:SetLoadLevelTargetResponse"]["JobID"])
         job.vera = self.device.vera
         return job
 
@@ -909,14 +926,13 @@ class RGBAction(Action):
         """
         h = self.color.to_hex()
 
-        # FIXME: RGB actions don't seem to work
         return {
             "device": self.device.id, 
             "action": "SetColor",
             "arguments": [
                 {
                     "name": "newColorTargetValue", 
-                    "value": self.color.to_hex()
+                    "value": str(self.color)
                 }
             ], 
             "service": "urn:upnp-org:serviceId:RGBController1"
@@ -989,7 +1005,7 @@ class RGB:
     def __init__(self, r, g, b):
         self.value = (r, g, b)
     def __str__(self):
-        return "RGB(%d,%d,%d)" % (self.value)
+        return "R%d,G%d,B%d" % (self.value)
     def to_hex(self):
         return "%02x%02x%02x0000" % self.value
 
@@ -1019,7 +1035,7 @@ class ColorAction(Action):
                 "arguments": [
                     {
                         "name": "newColorTarget", 
-                        "value": "D" + str(self.color.value)
+                        "value": str(self.color)
                     }
                 ],
                 "service": "urn:micasaverde-com:serviceId:Color1"
@@ -1031,7 +1047,7 @@ class ColorAction(Action):
                 "arguments": [
                     {
                         "name": "newColorTarget", 
-                        "value": "W" + str(self.color.value)
+                        "value": str(self.color)
                     }
                 ],
                 "service": "urn:micasaverde-com:serviceId:Color1"
@@ -1058,19 +1074,10 @@ class ColorAction(Action):
         """
 
         base="data_request?id=action"
-        
-        if isinstance(self.color, Warm):
-            action = "SetColor"
-            var = "newColorTarget"
-            value = "W" + str(self.color.value)
-        elif isinstance(self.color, Daylight):
-            action = "SetColor"
-            var = "newColorTarget"
-            value = "D" + str(self.color.value)
-        else:
-            action = "SetColorRGB"
-            var = "newColorRGBTarget"
-            value = "%d,%d,%d" % (self.color.value)
+
+        action = "SetColor"
+        var = "newColorTarget"
+        value = str(self.color)
 
         svc = "urn:micasaverde-com:serviceId:Color1"
         path = "%s&DeviceNum=%d&serviceId=%s&action=%s&%s=%s&output_format=json" \
@@ -1079,10 +1086,7 @@ class ColorAction(Action):
         status = self.device.vera.get(path)
         job = Job()
 
-        try:
-            job.id = int(status["u:SetColorResponse"]["JobID"])
-        except:
-            job.id = int(status["u:SetColorRGBResponse"]["JobID"])
+        job.id = int(status["u:SetColorResponse"]["JobID"])
         job.vera = self.device.vera
         return job
 
@@ -1455,24 +1459,26 @@ class Device(object):
             raise RuntimeError("Device doesn't support the service")
 
         val = self.get_variable(svc, "CurrentColor")
+        print(val)
 
-        # Get color channels, and produce a channel number -> ID map.
-        channels = self.get_variable(svc, "SupportedColors")
-        channels = channels.split(",")
-        channel_map = { i: channels[i] for i in range(0, len(channels)) }
+        channel_map = {
+            0: 'W', 1: 'D', 2: 'R', 3: 'G', 4: 'B'
+        }
 
         valmap = {}
         for part in val.split(","):
             k, v = part.split("=")
-            valmap[channel_map[int(k)]] = int(v)
+            if int(k) in channel_map:
+                valmap[channel_map[int(k)]] = int(v)
 
         # Hard-coded logic.  In ZW098, Warm white over-rides Daylight white,
         # over-rides RGB.
+
         if "W" in valmap and valmap["W"] > 0:
             return Warm(valmap["W"])
 
         if "D" in valmap and valmap["D"] > 0:
-            return Daylight(valmap["W"])
+            return Daylight(valmap["D"])
 
         return RGB(valmap["R"], valmap["G"], valmap["B"])
 
@@ -1485,6 +1491,16 @@ class Device(object):
         svc = "urn:micasaverde-com:serviceId:Color1"
         if not svc in self.services:
             raise RuntimeError("Device doesn't support the service")
+
+        # if isinstance(value, Warm):
+        #     ColorAction(self, Daylight(0)).invoke()
+        #     ColorAction(self, RGB(0, 0, 0)).invoke()
+        # elif isinstance(value, Daylight):
+        #     ColorAction(self, Warm(0)).invoke()
+        #     ColorAction(self, RGB(0, 0, 0)).invoke()
+        # elif isinstance(value, RGB):
+        #     ColorAction(self, Warm(0)).invoke()
+        #     ColorAction(self, Daylight(0)).invoke()
 
         # Get color channels, and produce an channel ID to number map.
         act = ColorAction(self, value)
