@@ -1,0 +1,75 @@
+#!/usr/bin/env python3
+
+# Example code, configures RGBW scenes for e.g. Aeotec ZW098
+
+import json
+import sys
+import vera
+
+if len(sys.argv) != 2:
+    sys.stderr.write("Usage:\n    test2 <config>\n")
+    sys.exit(1)
+
+ve = vera.connect(sys.argv[1])
+
+def change_dim(devname, value):
+    dev = ve.get_device(devname)
+
+    if value == 0:
+        return [ vera.SwitchAction(dev, False) ]
+
+    return [
+        vera.SwitchAction(dev, True),
+        vera.DimmerAction(dev, value)
+    ]
+
+devs = [
+    "RGBW 1",
+    "RGBW 2",
+    "RGBW 3"
+]
+
+def actions(r=0, g=0, b=0, w=0, d=0):
+    acts = []
+    for dev in devs:
+        acts.extend(change_dim(dev + " Red", r))
+        acts.extend(change_dim(dev + " Green", g))
+        acts.extend(change_dim(dev + " Blue", b))
+        acts.extend(change_dim(dev + " White", w))
+        acts.extend(change_dim(dev + " Dimming", d))
+    return vera.Group(0, acts)
+
+lighting_scenes = [
+    ("Red", actions(r=100, d=100)),
+    ("Low Red", actions(r=100, d=40)),
+    ("Orange Glow", actions(r=100, g=40, d=100)),
+    ("Cool Green", actions(g=90, b=50, d=100)),
+    ("Warm White", actions(r=30, g=30, w=100, d=100)),
+    ("Cool White", actions(g=15, b=30, w=100, d=100)),
+    ("White Glow", actions(r=30, g=30, w=100, d=20)),
+    ("Off", actions())
+]
+
+scene_names = set([v[0] for v in lighting_scenes])
+
+scenes = ve.get_scenes()
+
+for sc in scenes:
+    if sc.name in scene_names:
+        sc.delete()
+
+m = vera.Modes(home=True, away=True, night=True)
+room = ve.get_room("Office")
+
+for sc in lighting_scenes:
+
+    name = sc[0]
+    actions = sc[1]
+
+    print(name, "...")
+
+    sd = vera.SceneDefinition(name, [], m, [], [actions], room)
+
+    ve.create_scene(sd)
+
+
