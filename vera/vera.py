@@ -33,6 +33,7 @@ Server relay: vera-us-oem-relay41.mios.com
 Connected to remote device.
 """
 
+from . color import *
 import json
 import sys
 import hashlib
@@ -808,7 +809,7 @@ class DimmerAction(Action):
             "action": "SetLoadLevelTarget", 
             "arguments": [
                 {
-                    "name": "newTargetValue", 
+                    "name": "newLoadlevelTarget", 
                     "value": self.value
                 }
             ], 
@@ -824,7 +825,7 @@ class DimmerAction(Action):
         base="data_request?id=action"
         action = "SetLoadLevelTarget"
         svc = "urn:upnp-org:serviceId:Dimming1"
-        path = "%s&DeviceNum=%d&serviceId=%s&action=%s&newTargetValue=%d&output_format=json" \
+        path = "%s&DeviceNum=%d&serviceId=%s&action=%s&newLoadlevelTarget=%d&output_format=json" \
                % (base, self.device.id, svc, action, self.value)
         status = self.device.vera.get(path)
 
@@ -967,47 +968,6 @@ class RGBAction(Action):
         value = s["arguments"][0]["value"]
         sa.color = Color.parse(value)
         return sa
-
-class Color:
-    @staticmethod
-    def parse(s):
-        if len(s) not in [6, 8, 10]:
-            raise RuntimeError("Could not parse color %s" % s)
-        if s[:6] != "000000":
-            return RGB(int(s[0:2], 16), int(s[2:4], 16), int(s[4:6], 16))
-        if len(s) > 6:
-            if s[6:8] != "00":
-                return Warm(int(s[6:8], 16))
-        if len(s) == 10:
-            if s[8:10] != "00":
-                return Daylight(int(s[8:10], 16))
-
-        # All zeroes.
-        return RGB(0, 0, 0)
-
-class Daylight:
-    def __init__(self, value):
-        self.value = value
-    def __str__(self):
-        return "D" + str(self.value)
-    def to_hex(self):
-        return "00000000%02x" % self.value
-
-class Warm:
-    def __init__(self, value):
-        self.value = value
-    def __str__(self):
-        return "W" + str(self.value)
-    def to_hex(self):
-        return "000000%02x00" % self.value
-
-class RGB:
-    def __init__(self, r, g, b):
-        self.value = (r, g, b)
-    def __str__(self):
-        return "R%d,G%d,B%d" % (self.value)
-    def to_hex(self):
-        return "%02x%02x%02x0000" % self.value
 
 class ColorAction(Action):
     """
@@ -1459,7 +1419,6 @@ class Device(object):
             raise RuntimeError("Device doesn't support the service")
 
         val = self.get_variable(svc, "CurrentColor")
-        print(val)
 
         channel_map = {
             0: 'W', 1: 'D', 2: 'R', 3: 'G', 4: 'B'
