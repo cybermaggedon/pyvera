@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="pyvera",
+    name="python-vera",
     version="1.1",
     author="Cybermaggedon",
     author_email="mark@cyberapocalypse.co.uk",
