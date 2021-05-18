@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="pyvera",
-    version="1.0",
+    version="1.1",
     author="Cybermaggedon",
     author_email="mark@cyberapocalypse.co.uk",
     description="Python library to allow control of a Vera home automation hub",
@@ -19,11 +19,16 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     python_requires='>=3.0',
+    download_url = "https://github.com/cybermaggedon/pyvera/archive/refs/tags/v1.1.tar.gz",
+    install_requires=[
+        "requests"
+    ],
     scripts=[
         "scripts/vera-get-weather",
         "scripts/vera-update-scenes",
         "scripts/vera-get-scenes",
-        "scripts/vera-delete-scenes"
+        "scripts/vera-delete-scenes",
+        "scripts/vera-set-temperature"
     ]
 )
 
